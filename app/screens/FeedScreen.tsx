@@ -85,7 +85,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View>
+    <View style={{ flex: 1, flexDirection: "column" }}>
       <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
         <Pressable onPress={() => changeFeedType("top")}>
           <Text>Top</Text>
