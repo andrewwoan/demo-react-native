@@ -8,5 +8,5 @@ export const feedState = atom<Story[]>({
 
 export const feedTypeState = atom<FeedType>({
   key: "feedTypeState",
-  default: "top",
+  default: "Top",
 });
