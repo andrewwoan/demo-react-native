@@ -87,13 +87,13 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View>
       <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
-        <Pressable onPress={() => changeFeedType("Top")}>
+        <Pressable onPress={() => changeFeedType("top")}>
           <Text>Top</Text>
         </Pressable>
-        <Pressable onPress={() => changeFeedType("New")}>
+        <Pressable onPress={() => changeFeedType("new")}>
           <Text>Latest</Text>
         </Pressable>
-        <Pressable onPress={() => changeFeedType("Best")}>
+        <Pressable onPress={() => changeFeedType("best")}>
           <Text>Best</Text>
         </Pressable>
       </View>
