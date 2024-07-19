@@ -16,6 +16,7 @@ import { feedState, feedTypeState } from "../state/atoms";
 import { Story, FeedType } from "../types/types";
 import { RootStackParamList } from "../index";
 import { fetchStoryIds, fetchStories } from "../api/api";
+import { PAGINATION, STORAGE_KEYS } from "../constants/constants";
 
 const storage = new MMKV();
 const ITEMS_PER_PAGE = 20;
@@ -41,13 +42,17 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
     setStoryIds(ids);
   }, [feedType]);
 
+  const keyExtractor = useCallback((item: Story | null) => {
+    return item && item.id ? item.id.toString() : Math.random().toString();
+  }, []);
+
   const loadStories = useCallback(async () => {
     if (loading || storyIds.length === 0) return;
 
     setLoading(true);
     try {
       const startIndex = feed.length;
-      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const endIndex = startIndex + PAGINATION.ITEMS_PER_PAGE;
       const newStoryIds = storyIds.slice(startIndex, endIndex);
 
       const newStories = await fetchStories(newStoryIds);
@@ -60,7 +65,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
       console.log(JSON.stringify(newFeed));
 
       setFeed(newFeed);
-      storage.set("latestFeed", JSON.stringify(newFeed));
+      storage.set(STORAGE_KEYS.LATEST_FEED, JSON.stringify(newFeed));
     } catch (error) {
       console.log("ayo brooo there's an error here brahahwhwhwahwhw");
     } finally {
@@ -126,32 +131,34 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
           padding: 10,
         }}
       >
-        <Pressable onPress={() => changeFeedType("top")}>
-          <Text style={{ color: feedType === "top" ? "blue" : "black" }}>
+        <Pressable onPress={() => changeFeedType(FeedType.TOP)}>
+          <Text style={{ color: feedType === FeedType.TOP ? "blue" : "black" }}>
             Top
           </Text>
         </Pressable>
-        <Pressable onPress={() => changeFeedType("new")}>
-          <Text style={{ color: feedType === "new" ? "blue" : "black" }}>
+        <Pressable onPress={() => changeFeedType(FeedType.NEW)}>
+          <Text style={{ color: feedType === FeedType.NEW ? "blue" : "black" }}>
             Latest
           </Text>
         </Pressable>
-        <Pressable onPress={() => changeFeedType("best")}>
-          <Text style={{ color: feedType === "best" ? "blue" : "black" }}>
+        <Pressable onPress={() => changeFeedType(FeedType.BEST)}>
+          <Text
+            style={{ color: feedType === FeedType.BEST ? "blue" : "black" }}
+          >
             Best
           </Text>
         </Pressable>
       </View>
       <FlatList
-        data={feed}
+        data={feed.filter(Boolean)} // Filter out null or undefined items
         renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={keyExtractor}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListFooterComponent={renderFooter}
         onEndReached={loadStories}
-        onEndReachedThreshold={0.1}
+        onEndReachedThreshold={PAGINATION.THRESHOLD}
       />
     </View>
   );

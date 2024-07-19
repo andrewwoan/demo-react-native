@@ -7,4 +7,8 @@ export interface Story {
   descendants: number;
 }
 
-export type FeedType = "top" | "new" | "best";
+export enum FeedType {
+  TOP = "top",
+  NEW = "new",
+  BEST = "best",
+}
