@@ -19,7 +19,6 @@ import { fetchStoryIds, fetchStories } from "../api/api";
 import { PAGINATION, STORAGE_KEYS } from "../constants/constants";
 
 const storage = new MMKV();
-const ITEMS_PER_PAGE = 20;
 
 type FeedScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
