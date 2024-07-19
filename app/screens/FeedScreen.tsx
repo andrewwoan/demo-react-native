@@ -1,5 +1,3 @@
-// src/screens/FeedScreen.tsx
-
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -35,11 +33,26 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [storyIds, setStoryIds] = useState<number[]>([]);
+  const [isOffline, setIsOffline] = useState(false);
+
+  const loadFromCache = useCallback(() => {
+    const cachedFeed = storage.getString(STORAGE_KEYS.LATEST_FEED);
+    if (cachedFeed) {
+      setFeed(JSON.parse(cachedFeed));
+      setIsOffline(true);
+    }
+  }, [setFeed]);
 
   const loadStoryIds = useCallback(async () => {
-    const ids = await fetchStoryIds(feedType);
-    setStoryIds(ids);
-  }, [feedType]);
+    try {
+      const ids = await fetchStoryIds(feedType);
+      setStoryIds(ids);
+      setIsOffline(false);
+    } catch (error) {
+      console.log("ayo brooo werrererer offline my gg we're offline my ggg");
+      loadFromCache();
+    }
+  }, [feedType, loadFromCache]);
 
   const keyExtractor = useCallback((item: Story | null) => {
     return item && item.id ? item.id.toString() : Math.random().toString();
@@ -58,19 +71,16 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
 
       const newFeed = [...feed, ...newStories];
 
-      console.log(
-        "yesssir this some feed data yesssurr sheesh -------------------------"
-      );
-      console.log(JSON.stringify(newFeed));
-
       setFeed(newFeed);
       storage.set(STORAGE_KEYS.LATEST_FEED, JSON.stringify(newFeed));
+      setIsOffline(false);
     } catch (error) {
       console.log("ayo brooo there's an error here brahahwhwhwahwhw");
+      loadFromCache();
     } finally {
       setLoading(false);
     }
-  }, [feed, storyIds, loading]);
+  }, [feed, storyIds, loading, loadFromCache]);
 
   useEffect(() => {
     loadStoryIds();
@@ -119,10 +129,22 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const changeFeedType = (newType: FeedType) => {
     setFeedType(newType);
     setFeed([]);
+    setIsOffline(false);
   };
 
   return (
     <View style={{ flex: 1 }}>
+      {isOffline && (
+        <Text
+          style={{
+            textAlign: "center",
+            padding: 10,
+            backgroundColor: "yellow",
+          }}
+        >
+          Offline mode: Showing cached data
+        </Text>
+      )}
       <View
         style={{
           flexDirection: "row",
@@ -149,7 +171,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
         </Pressable>
       </View>
       <FlatList
-        data={feed.filter(Boolean)} // Filter out null or undefined items
+        data={feed.filter(Boolean)}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         refreshControl={
