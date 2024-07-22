@@ -36,6 +36,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const [isOffline, setIsOffline] = useState(false);
 
   const loadFromCache = useCallback(() => {
+    console.log("LOADING FROM CACHED DUDE");
     const cachedFeed = storage.getString(STORAGE_KEYS.LATEST_FEED);
     if (cachedFeed) {
       setFeed(JSON.parse(cachedFeed));
@@ -46,12 +47,16 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const loadStoryIds = useCallback(async () => {
     try {
       const ids = await fetchStoryIds(feedType);
-      setStoryIds(ids);
-      setIsOffline(false);
-    } catch (error) {
-      console.log("ayo brooo werrererer offline my gg we're offline my ggg");
-      loadFromCache();
-    }
+      console.log(ids);
+
+      if (ids.length > 0) {
+        setStoryIds(ids);
+        setIsOffline(false);
+      } else {
+        console.log("ayo brooo werrererer offline my gg we're offline my ggg");
+        loadFromCache();
+      }
+    } catch (error) {}
   }, [feedType, loadFromCache]);
 
   const keyExtractor = useCallback((item: Story | null) => {
