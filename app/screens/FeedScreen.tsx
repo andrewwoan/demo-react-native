@@ -42,7 +42,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
       setFeed(JSON.parse(cachedFeed));
       setIsOffline(true);
     }
-  }, [setFeed]);
+  }, []);
 
   const loadStoryIds = useCallback(async () => {
     try {
@@ -84,7 +84,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
-  }, [feed, storyIds, loading]);
+  }, [feed, storyIds]);
 
   useEffect(() => {
     loadStoryIds();
