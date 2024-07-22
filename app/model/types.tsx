@@ -12,3 +12,8 @@ export enum FeedType {
   NEW = "new",
   BEST = "best",
 }
+
+export type RootStackParamList = {
+  Feed: undefined;
+  Article: { url: string };
+};

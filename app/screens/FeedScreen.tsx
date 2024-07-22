@@ -5,16 +5,19 @@ import {
   FlatList,
   RefreshControl,
   Pressable,
-  ActivityIndicator,
+  Linking,
+  Platform,
 } from "react-native";
 import { useRecoilState } from "recoil";
 import { MMKV } from "react-native-mmkv";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { feedState, feedTypeState } from "../state/atoms";
-import { Story, FeedType } from "../types/types";
-import { RootStackParamList } from "../index";
+import { Story, FeedType } from "../model/types";
+import { RootStackParamList } from "../model/types";
 import { fetchStoryIds, fetchStories } from "../api/api";
-import { PAGINATION, STORAGE_KEYS } from "../constants/constants";
+import { PAGINATION, STORAGE_KEYS } from "../model/constants";
+import StoryItem from "../components/StoryItem";
+import FooterComponent from "../components/Footer";
 
 const storage = new MMKV();
 
@@ -35,8 +38,18 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const [storyIds, setStoryIds] = useState<number[]>([]);
   const [isOffline, setIsOffline] = useState(false);
 
+  const handleStoryPress = useCallback(
+    (item: Story) => {
+      if (Platform.OS === "web") {
+        Linking.openURL(item.url);
+      } else {
+        navigation.navigate("Article", { url: item.url });
+      }
+    },
+    [navigation]
+  );
+
   const loadFromCache = useCallback(() => {
-    console.log("LOADING FROM CACHED DUDE");
     const cachedFeed = storage.getString(STORAGE_KEYS.LATEST_FEED);
     if (cachedFeed) {
       setFeed(JSON.parse(cachedFeed));
@@ -53,7 +66,6 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
         setStoryIds(ids);
         setIsOffline(false);
       } else {
-        console.log("ayo brooo werrererer offline my gg we're offline my ggg");
         loadFromCache();
       }
     } catch (error) {}
@@ -80,7 +92,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
       storage.set(STORAGE_KEYS.LATEST_FEED, JSON.stringify(newFeed));
       setIsOffline(false);
     } catch (error) {
-      console.log("ayo brooo there's an error here brahahwhwhwahwhw");
+      console.error("Error loading data.");
     } finally {
       setLoading(false);
     }
@@ -106,29 +118,10 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderItem = useCallback(
     ({ item }: { item: Story }) => (
-      <Pressable
-        onPress={() => navigation.navigate("Article", { url: item.url })}
-      >
-        <View style={{ padding: 10 }}>
-          <Text style={{ fontWeight: "bold" }}>{item.title}</Text>
-          <Text>By: {item.by}</Text>
-          <Text>
-            Comments: {item.descendants || 0} | Score: {item.score}
-          </Text>
-        </View>
-      </Pressable>
+      <StoryItem item={item} onPress={() => handleStoryPress(item)} />
     ),
-    [navigation]
+    [handleStoryPress]
   );
-
-  const renderFooter = () => {
-    if (!loading) return null;
-    return (
-      <View style={{ padding: 10 }}>
-        <ActivityIndicator size="small" />
-      </View>
-    );
-  };
 
   const changeFeedType = (newType: FeedType) => {
     setFeedType(newType);
@@ -181,7 +174,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        ListFooterComponent={renderFooter}
+        ListFooterComponent={<FooterComponent loading={loading} />}
         onEndReached={loadStories}
         onEndReachedThreshold={PAGINATION.THRESHOLD}
       />

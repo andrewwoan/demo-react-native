@@ -1,4 +1,4 @@
-import { FeedType } from "../types/types";
+import { FeedType } from "./types";
 
 export const API = {
   BASE_URL: "https://hacker-news.firebaseio.com/v0",

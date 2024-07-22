@@ -1,8 +1,8 @@
 // src/api/api.ts
 
 import axios from "axios";
-import { Story, FeedType } from "../types/types";
-import { API } from "../constants/constants";
+import { Story, FeedType } from "../model/types";
+import { API } from "../model/constants";
 
 export const fetchStoryIds = async (feedType: FeedType): Promise<number[]> => {
   try {

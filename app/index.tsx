@@ -1,14 +1,9 @@
 import React from "react";
-import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { RecoilRoot } from "recoil";
 import FeedScreen from "./screens/FeedScreen";
 import ArticleScreen from "./screens/ArticleScreen";
-
-export type RootStackParamList = {
-  Feed: undefined;
-  Article: { url: string };
-};
+import { RootStackParamList } from "./model/types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
