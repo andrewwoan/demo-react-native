@@ -81,7 +81,6 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
       setIsOffline(false);
     } catch (error) {
       console.log("ayo brooo there's an error here brahahwhwhwahwhw");
-      loadFromCache();
     } finally {
       setLoading(false);
     }
