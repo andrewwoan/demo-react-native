@@ -84,7 +84,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
-  }, [feed, storyIds, loading, loadFromCache]);
+  }, [feed, storyIds, loading]);
 
   useEffect(() => {
     loadStoryIds();
