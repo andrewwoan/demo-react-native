@@ -9,6 +9,13 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  FadeIn,
+  FadeOut,
+} from "react-native-reanimated";
 import { useRecoilState } from "recoil";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { feedState, feedTypeState } from "../state/atoms";
@@ -20,7 +27,7 @@ import { PAGINATION } from "../model/constants";
 import HackerNewsApiClient from "../api/api";
 import HackerNewsRepository from "../api/repository";
 
-import StoryItem from "../components/StoryItem";
+import AnimatedStoryItem from "../components/StoryItem";
 import FooterComponent from "../components/Footer";
 
 type FeedScreenNavigationProp = NativeStackNavigationProp<
@@ -42,6 +49,14 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [page, setPage] = useState(0);
+
+  const fadeAnim = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: fadeAnim.value,
+    };
+  });
 
   const handleStoryPress = useCallback(
     (item: Story) => {
@@ -87,12 +102,15 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const changeFeedType = useCallback(
     (newType: FeedType) => {
       if (newType !== feedType) {
-        setFeedType(newType);
-        setPage(0);
-        setFeed([]);
+        fadeAnim.value = withTiming(0, { duration: 300 }, () => {
+          setFeedType(newType);
+          setPage(0);
+          setFeed([]);
+          fadeAnim.value = withTiming(1, { duration: 300 });
+        });
       }
     },
-    [feedType, setFeedType, setFeed]
+    [feedType, setFeedType, setFeed, fadeAnim]
   );
 
   const handleEndReached = useCallback(() => {
@@ -102,13 +120,18 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   }, [loading, loadStories]);
 
   const memoizedFeed = useMemo(() => feed, [feed]);
-
   return (
     <View style={styles.container}>
       {isOffline && (
-        <Text style={styles.offlineNotice}>
-          Offline mode: Showing cached data
-        </Text>
+        <Animated.View
+          entering={FadeIn}
+          exiting={FadeOut}
+          style={styles.offlineNotice}
+        >
+          <Text style={styles.offlineNoticeText}>
+            Offline mode: Showing cached data
+          </Text>
+        </Animated.View>
       )}
       <View style={styles.feedTypeContainer}>
         {Object.values(FeedType).map((type) => (
@@ -128,19 +151,25 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
           </Pressable>
         ))}
       </View>
-      <FlatList
-        data={memoizedFeed}
-        renderItem={({ item }) => (
-          <StoryItem item={item} onPress={() => handleStoryPress(item)} />
-        )}
-        keyExtractor={(item: Story) => item.id.toString()}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-        ListFooterComponent={<FooterComponent loading={loading} />}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={PAGINATION.THRESHOLD}
-      />
+      <Animated.View style={[styles.listContainer, animatedStyle]}>
+        <FlatList
+          data={memoizedFeed}
+          renderItem={({ item, index }) => (
+            <AnimatedStoryItem
+              item={item}
+              onPress={handleStoryPress}
+              index={index}
+            />
+          )}
+          keyExtractor={(item: Story) => item.id.toString()}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          ListFooterComponent={<FooterComponent loading={loading} />}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={PAGINATION.THRESHOLD}
+        />
+      </Animated.View>
     </View>
   );
 };
@@ -148,25 +177,39 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F5F5F5",
   },
   offlineNotice: {
+    paddingVertical: 10,
+    backgroundColor: "#FFD700",
+  },
+  offlineNoticeText: {
     textAlign: "center",
-    padding: 10,
-    backgroundColor: "yellow",
+    color: "#333",
+    fontWeight: "bold",
   },
   feedTypeContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    padding: 10,
+    padding: 15,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
   },
   feedTypeButton: {
-    padding: 5,
+    padding: 10,
+    borderRadius: 20,
   },
   feedTypeText: {
-    color: "black",
+    color: "#666",
+    fontWeight: "600",
   },
   activeFeedType: {
-    color: "blue",
+    color: "#FF6600",
+    fontWeight: "bold",
+  },
+  listContainer: {
+    flex: 1,
   },
 });
 
