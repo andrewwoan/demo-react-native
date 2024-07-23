@@ -1,17 +1,17 @@
-// src/components/StoryItem.tsx
+// components/MemoizedStoryItem.tsx
 
-import React from "react";
+import React, { memo } from "react";
 import { Pressable, Text, StyleSheet } from "react-native";
 import { Story } from "../model/types";
 
 interface StoryItemProps {
   item: Story;
-  onPress: () => void;
+  onPress: (item: Story) => void;
 }
 
 const StoryItem: React.FC<StoryItemProps> = ({ item, onPress }) => {
   return (
-    <Pressable onPress={onPress} style={styles.itemContainer}>
+    <Pressable onPress={() => onPress(item)} style={styles.itemContainer}>
       <Text style={styles.title}>{item.title}</Text>
       <Text>By: {item.by}</Text>
       <Text>
@@ -30,4 +30,6 @@ const styles = StyleSheet.create({
   },
 });
 
-export default StoryItem;
+export default memo(StoryItem, (prevProps, nextProps) => {
+  return prevProps.item.id === nextProps.item.id;
+});

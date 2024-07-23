@@ -4,28 +4,18 @@ import axios from "axios";
 import { Story, FeedType } from "../model/types";
 import { API } from "../model/constants";
 
-export const fetchStoryIds = async (feedType: FeedType): Promise<number[]> => {
-  try {
+export default class HackerNewsApiClient {
+  private baseUrl = "https://hacker-news.firebaseio.com/v0";
+
+  async fetchStoryIds(feedType: FeedType): Promise<number[]> {
     const response = await axios.get<number[]>(
-      `${API.BASE_URL}/${API.ENDPOINTS.STORIES(feedType)}`
+      `${this.baseUrl}/${feedType}stories.json`
     );
     return response.data;
-  } catch (error) {
-    console.error("Error fetching story IDs:", error);
-    return [];
   }
-};
 
-export const fetchStories = async (storyIds: number[]): Promise<Story[]> => {
-  try {
-    const stories = await Promise.all(
-      storyIds.map((id) =>
-        axios.get<Story>(`${API.BASE_URL}/${API.ENDPOINTS.ITEM(id)}`)
-      )
-    );
-    return stories.map((story) => story.data);
-  } catch (error) {
-    console.error("Error fetching stories:", error);
-    return [];
+  async fetchStory(id: number): Promise<Story> {
+    const response = await axios.get<Story>(`${this.baseUrl}/item/${id}.json`);
+    return response.data;
   }
-};
+}

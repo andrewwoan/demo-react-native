@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,19 +7,21 @@ import {
   Pressable,
   Linking,
   Platform,
+  StyleSheet,
 } from "react-native";
 import { useRecoilState } from "recoil";
-import { MMKV } from "react-native-mmkv";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { feedState, feedTypeState } from "../state/atoms";
+
 import { Story, FeedType } from "../model/types";
 import { RootStackParamList } from "../model/types";
-import { fetchStoryIds, fetchStories } from "../api/api";
-import { PAGINATION, STORAGE_KEYS } from "../model/constants";
+import { PAGINATION } from "../model/constants";
+
+import HackerNewsApiClient from "../api/api";
+import HackerNewsRepository from "../api/repository";
+
 import StoryItem from "../components/StoryItem";
 import FooterComponent from "../components/Footer";
-
-const storage = new MMKV();
 
 type FeedScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -30,13 +32,16 @@ type Props = {
   navigation: FeedScreenNavigationProp;
 };
 
+const apiClient = new HackerNewsApiClient();
+const repository = new HackerNewsRepository(apiClient);
+
 const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const [feed, setFeed] = useRecoilState(feedState);
   const [feedType, setFeedType] = useRecoilState(feedTypeState);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [storyIds, setStoryIds] = useState<number[]>([]);
   const [isOffline, setIsOffline] = useState(false);
+  const [page, setPage] = useState(0);
 
   const handleStoryPress = useCallback(
     (item: Story) => {
@@ -49,137 +54,120 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
     [navigation]
   );
 
-  const loadFromCache = useCallback(() => {
-    const cachedFeed = storage.getString(STORAGE_KEYS.LATEST_FEED);
-    if (cachedFeed) {
-      setFeed(JSON.parse(cachedFeed));
-      setIsOffline(true);
-    }
-  }, []);
-
-  const loadStoryIds = useCallback(async () => {
-    try {
-      const ids = await fetchStoryIds(feedType);
-      console.log(ids);
-
-      if (ids.length > 0) {
-        setStoryIds(ids);
+  const loadStories = useCallback(
+    async (refresh: boolean = false) => {
+      if (loading) return;
+      setLoading(true);
+      try {
+        const newPage = refresh ? 0 : page;
+        const stories = await repository.getStories(feedType, newPage);
+        setFeed((prevFeed) => (refresh ? stories : [...prevFeed, ...stories]));
+        setPage((prevPage) => (refresh ? 1 : prevPage + 1));
         setIsOffline(false);
-      } else {
-        loadFromCache();
+      } catch (error) {
+        console.error("Error loading stories:", error);
+        setIsOffline(true);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {}
-  }, [feedType, loadFromCache]);
-
-  const keyExtractor = useCallback((item: Story | null) => {
-    return item && item.id ? item.id.toString() : Math.random().toString();
-  }, []);
-
-  const loadStories = useCallback(async () => {
-    if (loading || storyIds.length === 0) return;
-
-    setLoading(true);
-    try {
-      const startIndex = feed.length;
-      const endIndex = startIndex + PAGINATION.ITEMS_PER_PAGE;
-      const newStoryIds = storyIds.slice(startIndex, endIndex);
-
-      const newStories = await fetchStories(newStoryIds);
-
-      const newFeed = [...feed, ...newStories];
-
-      setFeed(newFeed);
-      storage.set(STORAGE_KEYS.LATEST_FEED, JSON.stringify(newFeed));
-      setIsOffline(false);
-    } catch (error) {
-      console.error("Error loading data.");
-    } finally {
-      setLoading(false);
-    }
-  }, [feed, storyIds]);
-
-  useEffect(() => {
-    loadStoryIds();
-  }, [feedType, loadStoryIds]);
-
-  useEffect(() => {
-    if (storyIds.length > 0 && feed.length === 0) {
-      loadStories();
-    }
-  }, [storyIds, feed.length, loadStories]);
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setFeed([]);
-    loadStoryIds().then(() => {
-      setRefreshing(false);
-    });
-  }, [loadStoryIds]);
-
-  const renderItem = useCallback(
-    ({ item }: { item: Story }) => (
-      <StoryItem item={item} onPress={() => handleStoryPress(item)} />
-    ),
-    [handleStoryPress]
+    },
+    [feedType, loading, page, setFeed]
   );
 
-  const changeFeedType = (newType: FeedType) => {
-    setFeedType(newType);
-    setFeed([]);
-    setIsOffline(false);
-  };
+  useEffect(() => {
+    loadStories(true);
+  }, [feedType]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadStories(true);
+    setRefreshing(false);
+  }, [loadStories]);
+
+  const changeFeedType = useCallback(
+    (newType: FeedType) => {
+      if (newType !== feedType) {
+        setFeedType(newType);
+        setPage(0);
+        setFeed([]);
+      }
+    },
+    [feedType, setFeedType, setFeed]
+  );
+
+  const handleEndReached = useCallback(() => {
+    if (!loading) {
+      loadStories();
+    }
+  }, [loading, loadStories]);
+
+  const memoizedFeed = useMemo(() => feed, [feed]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       {isOffline && (
-        <Text
-          style={{
-            textAlign: "center",
-            padding: 10,
-            backgroundColor: "yellow",
-          }}
-        >
+        <Text style={styles.offlineNotice}>
           Offline mode: Showing cached data
         </Text>
       )}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-around",
-          padding: 10,
-        }}
-      >
-        <Pressable onPress={() => changeFeedType(FeedType.TOP)}>
-          <Text style={{ color: feedType === FeedType.TOP ? "blue" : "black" }}>
-            Top
-          </Text>
-        </Pressable>
-        <Pressable onPress={() => changeFeedType(FeedType.NEW)}>
-          <Text style={{ color: feedType === FeedType.NEW ? "blue" : "black" }}>
-            Latest
-          </Text>
-        </Pressable>
-        <Pressable onPress={() => changeFeedType(FeedType.BEST)}>
-          <Text
-            style={{ color: feedType === FeedType.BEST ? "blue" : "black" }}
+      <View style={styles.feedTypeContainer}>
+        {Object.values(FeedType).map((type) => (
+          <Pressable
+            key={type}
+            onPress={() => changeFeedType(type)}
+            style={styles.feedTypeButton}
           >
-            Best
-          </Text>
-        </Pressable>
+            <Text
+              style={[
+                styles.feedTypeText,
+                feedType === type && styles.activeFeedType,
+              ]}
+            >
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </Text>
+          </Pressable>
+        ))}
       </View>
       <FlatList
-        data={feed.filter(Boolean)}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
+        data={memoizedFeed}
+        renderItem={({ item }) => (
+          <StoryItem item={item} onPress={() => handleStoryPress(item)} />
+        )}
+        keyExtractor={(item: Story) => item.id.toString()}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
         ListFooterComponent={<FooterComponent loading={loading} />}
-        onEndReached={loadStories}
+        onEndReached={handleEndReached}
         onEndReachedThreshold={PAGINATION.THRESHOLD}
       />
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  offlineNotice: {
+    textAlign: "center",
+    padding: 10,
+    backgroundColor: "yellow",
+  },
+  feedTypeContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    padding: 10,
+  },
+  feedTypeButton: {
+    padding: 5,
+  },
+  feedTypeText: {
+    color: "black",
+  },
+  activeFeedType: {
+    color: "blue",
+  },
+});
 
 export default FeedScreen;
