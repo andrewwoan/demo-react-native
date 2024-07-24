@@ -15,6 +15,7 @@ import Animated, {
   withTiming,
   FadeIn,
   FadeOut,
+  runOnJS,
 } from "react-native-reanimated";
 import { useRecoilState } from "recoil";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -102,17 +103,18 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const changeFeedType = useCallback(
     (newType: FeedType) => {
       if (newType !== feedType) {
-        fadeAnim.value = withTiming(0, { duration: 300 }, () => {
-          setFeedType(newType);
-          setPage(0);
-          setFeed([]);
-          fadeAnim.value = withTiming(1, { duration: 300 });
+        fadeAnim.value = withTiming(0, { duration: 300 }, (finished) => {
+          if (finished) {
+            runOnJS(setFeedType)(newType);
+            runOnJS(setPage)(0);
+            runOnJS(setFeed)([]);
+            fadeAnim.value = withTiming(1, { duration: 300 });
+          }
         });
       }
     },
     [feedType, setFeedType, setFeed, fadeAnim]
   );
-
   const handleEndReached = useCallback(() => {
     if (!loading) {
       loadStories();
