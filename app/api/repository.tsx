@@ -23,12 +23,16 @@ export default class HackerNewsRepository {
 
     const storyIds = await this.apiClient.fetchStoryIds(feedType);
     const startIndex = page * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage - 1;
+    console.log("INDEXX BROOO");
+    console.log(startIndex, endIndex);
     const pageStoryIds = storyIds.slice(startIndex, endIndex);
 
-    const stories = await Promise.all(
-      pageStoryIds.map((id) => this.apiClient.fetchStory(id))
-    );
+    const stories = (
+      await Promise.all(pageStoryIds.map((id) => this.apiClient.fetchStory(id)))
+    ).filter((story) => story !== null);
+
+    console.log(stories);
 
     if (page === 0) {
       this.cacheStories(feedType, stories);

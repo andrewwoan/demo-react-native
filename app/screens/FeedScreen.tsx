@@ -161,7 +161,9 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
               index={index}
             />
           )}
-          keyExtractor={(item: Story) => item.id.toString()}
+          keyExtractor={(item: Story) => {
+            return item.id.toString();
+          }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
