@@ -34,7 +34,7 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
 
   const itemContainerStyle: ViewStyle = {
     ...styles.itemContainer,
-    marginTop: index === 0 ? 10 : 5, // Increase top margin for the first item
+    marginTop: index === 0 ? 10 : 5,
   };
 
   return (

@@ -2,12 +2,7 @@
 
 import { MMKV } from "react-native-mmkv";
 import HackerNewsApiClient from "./api";
-import { Story, FeedType } from "../model/types";
-
-import ApiError from "./ApiError";
-
-console.log("THIS IS AN APIERROR");
-console.log(ApiError);
+import { Story, FeedType, ApiResponse } from "../model/types";
 
 const storage = new MMKV();
 
@@ -26,7 +21,6 @@ export default class HackerNewsRepository {
     [FeedType.NEW]: new Set(),
     [FeedType.BEST]: new Set(),
   };
-  private lastFeedType: FeedType | null = null;
 
   constructor(apiClient: HackerNewsApiClient) {
     this.apiClient = apiClient;
@@ -37,20 +31,9 @@ export default class HackerNewsRepository {
     page: number = 0
   ): Promise<Story[]> => {
     try {
-      // If feed type has changed, clear the cache for the new feed type
-      if (this.lastFeedType !== feedType) {
-        this.clearCache(feedType);
-        this.lastFeedType = feedType;
-      }
-
-      const cachedStories = this.getCachedStories(feedType, page);
-      if (cachedStories) {
-        return this.filterDuplicates(cachedStories, feedType);
-      }
-
-      const { storyIds, expirationTime } = await this.apiClient.fetchStoryIds(
-        feedType
-      );
+      const response: ApiResponse<number[]> =
+        await this.apiClient.fetchStoryIds(feedType);
+      const storyIds = response.data;
 
       let stories: Story[] = [];
       let uniqueStoriesCount = 0;
@@ -60,92 +43,74 @@ export default class HackerNewsRepository {
         uniqueStoriesCount < this.itemsPerPage &&
         index < storyIds.length
       ) {
-        const batch = storyIds.slice(index, index + this.itemsPerPage);
-        const batchStories = await Promise.all(
-          batch.map((id) => this.apiClient.fetchStory(id).catch(() => null))
-        );
+        const id = storyIds[index];
+        const cachedStory = this.getCachedStory(id);
 
-        for (const story of batchStories) {
+        if (cachedStory) {
+          console.log("we're just getting a cached story sheeeeeeeeeeesh");
+          stories.push(cachedStory);
+          this.loadedStoryIds[feedType].add(cachedStory.id);
+          uniqueStoriesCount++;
+        } else {
+          const storyResponse = await this.apiClient.fetchStory(id);
+          const story = storyResponse.data;
           if (story && !this.loadedStoryIds[feedType].has(story.id)) {
             stories.push(story);
             this.loadedStoryIds[feedType].add(story.id);
             uniqueStoriesCount++;
-            if (uniqueStoriesCount >= this.itemsPerPage) break;
+            this.cacheStory(
+              story,
+              this.calculateExpirationTime(storyResponse.metadata.timestamp)
+            );
           }
         }
 
-        index += this.itemsPerPage;
+        index++;
       }
-
-      this.cacheStories(feedType, page, stories, expirationTime);
 
       return stories;
     } catch (error) {
-      if (error instanceof ApiError) {
-        console.log("sheeesh da babie");
-        throw new NetworkError(
-          `Network error: ${error.statusCode} - ${error.message}`
-        );
+      if (error instanceof Error) {
+        throw new Error(`Network error: ${error.message}`);
       }
       throw error;
     }
   };
 
-  private filterDuplicates = (
-    stories: Story[],
-    feedType: FeedType
-  ): Story[] => {
-    return stories.filter((story) => {
-      if (this.loadedStoryIds[feedType].has(story.id)) {
-        return false;
-      }
-      this.loadedStoryIds[feedType].add(story.id);
-      return true;
-    });
-  };
+  private calculateExpirationTime(timestamp: Date): number {
+    return timestamp.getTime() + 5 * 60 * 1000;
+  }
 
-  private getCachedStories = (
-    feedType: FeedType,
-    page: number
-  ): Story[] | null => {
-    const cacheKey = this.getCacheKey(feedType, page);
+  //If story in cache, return it if it is not expired, otherwise, return null
+  private getCachedStory(id: number): Story | null {
+    const cacheKey = `story_${id}`;
     const cachedData = storage.getString(cacheKey);
     if (cachedData) {
-      const { stories, expirationTime } = JSON.parse(cachedData);
+      const { story, expirationTime } = JSON.parse(cachedData);
       if (Date.now() < expirationTime) {
-        return stories;
+        return story;
       } else {
-        // Remove expired cache entry
         storage.delete(cacheKey);
       }
     }
     return null;
-  };
+  }
 
-  private cacheStories = (
-    feedType: FeedType,
-    page: number,
-    stories: Story[],
-    expirationTime: number
-  ): void => {
-    const cacheKey = this.getCacheKey(feedType, page);
-    const cacheData = JSON.stringify({
-      stories,
-      expirationTime,
-    });
+  private cacheStory(story: Story, expirationTime: number): void {
+    const cacheKey = `story_${story.id}`;
+    console.log("THIS IS THE CACHEKEY");
+    console.log(cacheKey);
+    const cacheData = JSON.stringify({ story, expirationTime });
+
+    console.log("HERE WE ARE GETTING ALL KEEEYS ---------------------------");
+    console.log(storage.getAllKeys());
     storage.set(cacheKey, cacheData);
-  };
-
-  private getCacheKey = (feedType: FeedType, page: number): string => {
-    return `stories_${feedType}_${page}_${Date.now()}`;
-  };
+  }
 
   clearCache = (feedType: FeedType): void => {
     const keys = storage.getAllKeys();
-    const feedKeys = keys.filter((key) =>
-      key.startsWith(`stories_${feedType}`)
-    );
-    feedKeys.forEach((key) => storage.delete(key));
+    const storyKeys = keys.filter((key) => key.startsWith("story_"));
+    storyKeys.forEach((key) => storage.delete(key));
     this.loadedStoryIds[feedType].clear();
   };
 }

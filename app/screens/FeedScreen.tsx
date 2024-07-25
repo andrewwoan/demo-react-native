@@ -78,7 +78,6 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
         console.error("Error loading stories:", error);
         if (error instanceof NetworkError) {
           setIsOffline(true);
-          // if (retryCount < MAX_RETRY_ATTEMPTS) {
           retryCount++;
           Toast.show({
             type: "error",
@@ -92,17 +91,6 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
             handleRefresh();
             console.log("attempting to refressh bro");
           }, 2000);
-          // } else {
-          //   Toast.show({
-          //     type: "error",
-          //     text1: "Network Error",
-          //     text2:
-          //       "Failed to load stories. Please check your connection and try again.",
-          //     position: "bottom",
-          //     visibilityTime: 4000,
-          //     autoHide: true,
-          //   });
-          // }
         } else {
           Toast.show({
             type: "error",
@@ -128,6 +116,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     repository.clearCache(feedType);
+    retryCount = 0;
     await loadStories(true);
     setRefreshing(false);
   }, [loadStories, feedType]);
