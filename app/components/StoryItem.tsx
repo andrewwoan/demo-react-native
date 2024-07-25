@@ -1,7 +1,7 @@
 // components/AnimatedStoryItem.tsx
 
 import React, { memo } from "react";
-import { Pressable, Text, StyleSheet } from "react-native";
+import { Pressable, Text, StyleSheet, ViewStyle } from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -32,13 +32,18 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
     };
   });
 
+  const itemContainerStyle: ViewStyle = {
+    ...styles.itemContainer,
+    marginTop: index === 0 ? 10 : 5, // Increase top margin for the first item
+  };
+
   return (
     <Animated.View
       entering={FadeIn.delay(index * 5).springify()}
       exiting={FadeOut.duration(200)}
       style={animatedStyle}
     >
-      <Pressable onPress={() => onPress(item)} style={styles.itemContainer}>
+      <Pressable onPress={() => onPress(item)} style={itemContainerStyle}>
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.author}>By: {item.by}</Text>
         <Text style={styles.stats}>
@@ -53,7 +58,7 @@ const styles = StyleSheet.create({
   itemContainer: {
     padding: 15,
     backgroundColor: "#FFFFFF",
-    marginBottom: 10,
+    margin: 5,
     marginHorizontal: 10,
     borderRadius: 8,
     shadowColor: "#000",

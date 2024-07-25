@@ -1,3 +1,5 @@
+// src/screens/FeedScreen.tsx
+
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
@@ -9,16 +11,9 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  FadeIn,
-  FadeOut,
-  runOnJS,
-} from "react-native-reanimated";
 import { useRecoilState } from "recoil";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import Toast from "react-native-toast-message";
 import { feedState, feedTypeState } from "../state/atoms";
 
 import { Story, FeedType } from "../model/types";
@@ -26,9 +21,9 @@ import { RootStackParamList } from "../model/types";
 import { PAGINATION } from "../model/constants";
 
 import HackerNewsApiClient from "../api/api";
-import HackerNewsRepository from "../api/repository";
+import HackerNewsRepository, { NetworkError } from "../api/repository";
 
-import AnimatedStoryItem from "../components/StoryItem";
+import StoryItem from "../components/StoryItem";
 import FooterComponent from "../components/Footer";
 
 type FeedScreenNavigationProp = NativeStackNavigationProp<
@@ -43,6 +38,9 @@ type Props = {
 const apiClient = new HackerNewsApiClient();
 const repository = new HackerNewsRepository(apiClient);
 
+const MAX_RETRY_ATTEMPTS = 3;
+let retryCount = 0;
+
 const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const [feed, setFeed] = useRecoilState(feedState);
   const [feedType, setFeedType] = useRecoilState(feedTypeState);
@@ -50,14 +48,6 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [page, setPage] = useState(0);
-
-  const fadeAnim = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: fadeAnim.value,
-    };
-  });
 
   const handleStoryPress = useCallback(
     (item: Story) => {
@@ -77,16 +67,57 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
       try {
         const newPage = refresh ? 0 : page;
         const stories = await repository.getStories(feedType, newPage);
+        console.log("feedtype", feedType);
+        console.log("newPage", newPage);
+
         setFeed((prevFeed) => (refresh ? stories : [...prevFeed, ...stories]));
-        setPage((prevPage) => (refresh ? 1 : prevPage + 1));
+        setPage((prevPage) => newPage + 1);
+        retryCount = 0;
         setIsOffline(false);
       } catch (error) {
         console.error("Error loading stories:", error);
-        setIsOffline(true);
+        if (error instanceof NetworkError) {
+          setIsOffline(true);
+          // if (retryCount < MAX_RETRY_ATTEMPTS) {
+          retryCount++;
+          Toast.show({
+            type: "error",
+            text1: "Network Error",
+            text2: `Retrying... Attempt ${retryCount} of ${MAX_RETRY_ATTEMPTS}`,
+            position: "bottom",
+            visibilityTime: 2000,
+            autoHide: true,
+          });
+          setTimeout(() => {
+            handleRefresh();
+            console.log("attempting to refressh bro");
+          }, 2000);
+          // } else {
+          //   Toast.show({
+          //     type: "error",
+          //     text1: "Network Error",
+          //     text2:
+          //       "Failed to load stories. Please check your connection and try again.",
+          //     position: "bottom",
+          //     visibilityTime: 4000,
+          //     autoHide: true,
+          //   });
+          // }
+        } else {
+          Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "An unexpected error occurred. Please try again later.",
+            position: "bottom",
+            visibilityTime: 4000,
+            autoHide: true,
+          });
+        }
       } finally {
         setLoading(false);
       }
     },
+
     [feedType, loading, page, setFeed]
   );
 
@@ -96,25 +127,22 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
+    repository.clearCache(feedType);
     await loadStories(true);
     setRefreshing(false);
-  }, [loadStories]);
+  }, [loadStories, feedType]);
 
   const changeFeedType = useCallback(
     (newType: FeedType) => {
       if (newType !== feedType) {
-        fadeAnim.value = withTiming(0, { duration: 300 }, (finished) => {
-          if (finished) {
-            runOnJS(setFeedType)(newType);
-            runOnJS(setPage)(0);
-            runOnJS(setFeed)([]);
-            fadeAnim.value = withTiming(1, { duration: 300 });
-          }
-        });
+        setFeedType(newType);
+        setPage(0);
+        setFeed([]);
       }
     },
-    [feedType, setFeedType, setFeed, fadeAnim]
+    [feedType]
   );
+
   const handleEndReached = useCallback(() => {
     if (!loading) {
       loadStories();
@@ -122,18 +150,15 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   }, [loading, loadStories]);
 
   const memoizedFeed = useMemo(() => feed, [feed]);
+
   return (
     <View style={styles.container}>
       {isOffline && (
-        <Animated.View
-          entering={FadeIn}
-          exiting={FadeOut}
-          style={styles.offlineNotice}
-        >
+        <View style={styles.offlineNotice}>
           <Text style={styles.offlineNoticeText}>
             Offline mode: Showing cached data
           </Text>
-        </Animated.View>
+        </View>
       )}
       <View style={styles.feedTypeContainer}>
         {Object.values(FeedType).map((type) => (
@@ -153,15 +178,11 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
           </Pressable>
         ))}
       </View>
-      <Animated.View style={[styles.listContainer, animatedStyle]}>
+      <View style={styles.listContainer}>
         <FlatList
           data={memoizedFeed}
           renderItem={({ item, index }) => (
-            <AnimatedStoryItem
-              item={item}
-              onPress={handleStoryPress}
-              index={index}
-            />
+            <StoryItem item={item} onPress={handleStoryPress} index={index} />
           )}
           keyExtractor={(item: Story) => {
             return item.id.toString();
@@ -173,7 +194,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
           onEndReached={handleEndReached}
           onEndReachedThreshold={PAGINATION.THRESHOLD}
         />
-      </Animated.View>
+      </View>
     </View>
   );
 };

@@ -4,6 +4,7 @@ import { RecoilRoot } from "recoil";
 import FeedScreen from "./screens/FeedScreen";
 import ArticleScreen from "./screens/ArticleScreen";
 import { RootStackParamList } from "./model/types";
+import Toast from "react-native-toast-message";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -14,6 +15,7 @@ export default function Index() {
         <Stack.Screen name="Feed" component={FeedScreen} />
         <Stack.Screen name="Article" component={ArticleScreen} />
       </Stack.Navigator>
+      <Toast />
     </RecoilRoot>
   );
 }
