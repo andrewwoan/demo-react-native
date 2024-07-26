@@ -93,7 +93,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
         console.log("THIS IS THE RETRY COUNT------------------------------");
         console.log(retryCountRef.current);
 
-        if (error instanceof ApiError) {
+        if (error instanceof ApiError && error.statusCode === 408) {
           setIsOffline(true);
           Toast.show({
             type: "error",
