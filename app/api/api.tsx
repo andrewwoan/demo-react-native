@@ -11,11 +11,30 @@ import {
 
 export default class HackerNewsApiClient {
   private baseUrl = "https://hacker-news.firebaseio.com/v0";
+  private simulateError = true;
+  private errorSimulationCount = 0;
+
+  setSimulateError(simulate: boolean) {
+    this.simulateError = simulate;
+    this.errorSimulationCount = 0;
+  }
 
   private async makeRequest<T>(
     config: ApiRequestConfig<T>
   ): Promise<ApiResponse<T>> {
     try {
+      console.log(this.simulateError);
+      console.log(this.errorSimulationCount);
+      console.log(config.maxAttempts);
+      if (
+        this.simulateError &&
+        this.errorSimulationCount < config.maxAttempts
+      ) {
+        console.log("simulating error");
+        this.errorSimulationCount++;
+        throw new ApiError(404, "Simulated 404 Error", config.maxAttempts);
+      }
+
       const response = await axios({
         url: `${this.baseUrl}${config.endpoint}`,
         method: config.method,
@@ -45,17 +64,27 @@ export default class HackerNewsApiClient {
     } catch (error) {
       if (config.currentAttempt < config.maxAttempts) {
         config.currentAttempt++;
-        return this.makeRequest(config);
+        // return this.makeRequest(config);
       }
-      throw this.handleApiError(error);
+      throw this.handleApiError(error, config.maxAttempts);
     }
   }
 
-  private handleApiError(error: unknown): never {
+  private handleApiError(error: unknown, maxAttempts: number): never {
+    if (error instanceof ApiError) {
+      console.log("yeah handling this shit");
+      console.log(error);
+      error.maxAttempts = maxAttempts;
+      throw error;
+    }
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError;
       if (axiosError.response) {
-        throw new ApiError(axiosError.response.status, axiosError.message);
+        throw new ApiError(
+          axiosError.response.status,
+          axiosError.message,
+          maxAttempts
+        );
       }
     }
     throw error;

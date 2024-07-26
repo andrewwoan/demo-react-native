@@ -46,6 +46,8 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
       <Pressable onPress={() => onPress(item)} style={itemContainerStyle}>
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.author}>By: {item.by}</Text>
+        <Text>Index: {index}</Text>
+
         <Text style={styles.stats}>
           Comments: {item.descendants || 0} | Score: {item.score}
         </Text>

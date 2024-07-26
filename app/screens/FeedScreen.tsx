@@ -1,6 +1,12 @@
 // src/screens/FeedScreen.tsx
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -21,7 +27,8 @@ import { RootStackParamList } from "../model/types";
 import { PAGINATION } from "../model/constants";
 
 import HackerNewsApiClient from "../api/api";
-import HackerNewsRepository, { NetworkError } from "../api/repository";
+import ApiError from "../api/ApiError";
+import HackerNewsRepository from "../api/repository";
 
 import StoryItem from "../components/StoryItem";
 import FooterComponent from "../components/Footer";
@@ -39,7 +46,6 @@ const apiClient = new HackerNewsApiClient();
 const repository = new HackerNewsRepository(apiClient);
 
 const MAX_RETRY_ATTEMPTS = 3;
-let retryCount = 0;
 
 const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const [feed, setFeed] = useRecoilState(feedState);
@@ -48,6 +54,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [page, setPage] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
 
   const handleStoryPress = useCallback(
     (item: Story) => {
@@ -60,36 +67,45 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
     [navigation]
   );
 
+  const retryCountRef = useRef(0);
+
   const loadStories = useCallback(
     async (refresh: boolean = false) => {
       if (loading) return;
       setLoading(true);
       try {
+        console.log("FRONTEND ATTEMPTING");
         const newPage = refresh ? 0 : page;
         const stories = await repository.getStories(feedType, newPage);
-        console.log("feedtype", feedType);
-        console.log("newPage", newPage);
 
         setFeed((prevFeed) => (refresh ? stories : [...prevFeed, ...stories]));
         setPage((prevPage) => newPage + 1);
-        retryCount = 0;
+        if (stories) {
+          console.log("THESE ARE THE STORIES BRO");
+          console.log(stories);
+          console.log("feedtype", feedType);
+          console.log("newPage", newPage);
+          retryCountRef.current = 0; // Reset retry count on success
+        }
         setIsOffline(false);
       } catch (error) {
-        console.error("Error loading stories:", error);
-        if (error instanceof NetworkError) {
+        retryCountRef.current += 1;
+        console.log("THIS IS THE RETRY COUNT------------------------------");
+        console.log(retryCountRef.current);
+
+        if (error instanceof ApiError) {
           setIsOffline(true);
-          retryCount++;
           Toast.show({
             type: "error",
-            text1: "Network Error",
-            text2: `Retrying... Attempt ${retryCount} of ${MAX_RETRY_ATTEMPTS}`,
+            text1: "Network Error: Please check your internet connection",
+            text2: `Retrying... Attempt ${retryCountRef.current} of ${error.maxAttempts}`,
             position: "bottom",
             visibilityTime: 2000,
             autoHide: true,
           });
           setTimeout(() => {
-            handleRefresh();
-            console.log("attempting to refressh bro");
+            loadStories(true);
+            console.log("attempting to refresh bro");
           }, 2000);
         } else {
           Toast.show({
@@ -105,7 +121,6 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
         setLoading(false);
       }
     },
-
     [feedType, loading, page, setFeed]
   );
 
@@ -115,8 +130,8 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    repository.clearCache(feedType);
-    retryCount = 0;
+    repository.clearCache();
+    setRetryCount(0);
     await loadStories(true);
     setRefreshing(false);
   }, [loadStories, feedType]);
