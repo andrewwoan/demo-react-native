@@ -11,7 +11,7 @@ import {
 
 export default class HackerNewsApiClient {
   private baseUrl = "https://hacker-news.firebaseio.com/v0";
-  private simulateError = true;
+  private simulateError = false;
   private errorSimulationCount = 0;
 
   setSimulateError(simulate: boolean) {

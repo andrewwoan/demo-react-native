@@ -86,7 +86,7 @@ export default class HackerNewsRepository {
   private getCachedStory(id: number): Story | null {
     const cacheKey = `story_${id}`;
     const cachedData = storage.getString(cacheKey);
-    // console.log("GETTING CACHED STORY");
+    console.log("GETTING CACHED STORY");
     // console.log(cacheKey);
     // console.log(storage.getAllKeys());
     if (cachedData) {

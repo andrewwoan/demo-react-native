@@ -14,8 +14,10 @@ export enum FeedType {
 }
 
 export type RootStackParamList = {
+  Home: undefined;
   Feed: undefined;
   Article: { url: string };
+  Profile: undefined;
 };
 
 export interface ApiResponseMetadata {
