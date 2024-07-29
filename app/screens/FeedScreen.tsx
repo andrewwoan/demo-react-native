@@ -74,24 +74,17 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
       if (loading) return;
       setLoading(true);
       try {
-        console.log("FRONTEND ATTEMPTING");
         const newPage = refresh ? 0 : page;
         const stories = await repository.getStories(feedType, newPage);
 
         setFeed((prevFeed) => (refresh ? stories : [...prevFeed, ...stories]));
         setPage((prevPage) => newPage + 1);
         if (stories) {
-          console.log("THESE ARE THE STORIES BRO");
-          console.log(stories);
-          console.log("feedtype", feedType);
-          console.log("newPage", newPage);
-          retryCountRef.current = 0; // Reset retry count on success
+          retryCountRef.current = 0;
         }
         setIsOffline(false);
       } catch (error) {
         retryCountRef.current += 1;
-        console.log("THIS IS THE RETRY COUNT------------------------------");
-        console.log(retryCountRef.current);
 
         if (error instanceof ApiError && error.statusCode === 408) {
           setIsOffline(true);
@@ -105,7 +98,6 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
           });
           setTimeout(() => {
             loadStories(true);
-            console.log("attempting to refresh bro");
           }, 2000);
         } else {
           Toast.show({

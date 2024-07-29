@@ -64,7 +64,7 @@ export default class HackerNewsApiClient {
     } catch (error) {
       if (config.currentAttempt < config.maxAttempts) {
         config.currentAttempt++;
-        // return this.makeRequest(config);
+        return this.makeRequest(config);
       }
       throw this.handleApiError(error, config.maxAttempts);
     }

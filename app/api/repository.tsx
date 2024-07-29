@@ -45,13 +45,11 @@ export default class HackerNewsRepository {
 
         if (cachedStory) {
           stories.push(cachedStory);
-          console.log("CACHED STORY IS TRIGGERING SO HARD RN BROOOOO");
           if (!this.loadedStoryIds.has(cachedStory.id)) {
             this.loadedStoryIds.add(cachedStory.id);
             uniqueStoriesCount++;
           }
         } else {
-          console.log("NOT CACHED STORY IS TRIGGERING SO HARD RN BROOOOO");
           const storyResponse = await this.apiClient.fetchStory(id);
           const story = storyResponse.data;
           if (story && !this.loadedStoryIds.has(story.id)) {
@@ -68,11 +66,9 @@ export default class HackerNewsRepository {
         index++;
       }
 
-      console.log(stories);
       return stories;
     } catch (error) {
       if (error instanceof ApiError) {
-        console.log("simulation is here");
         throw new ApiError(404, "Simulated 404 Error", 5);
       }
       throw error;
@@ -86,9 +82,6 @@ export default class HackerNewsRepository {
   private getCachedStory(id: number): Story | null {
     const cacheKey = `story_${id}`;
     const cachedData = storage.getString(cacheKey);
-    console.log("GETTING CACHED STORY");
-    // console.log(cacheKey);
-    // console.log(storage.getAllKeys());
     if (cachedData) {
       const { story, expirationTime } = JSON.parse(cachedData);
       if (Date.now() < expirationTime) {
