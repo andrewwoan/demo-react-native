@@ -23,14 +23,10 @@ export default class HackerNewsApiClient {
     config: ApiRequestConfig<T>
   ): Promise<ApiResponse<T>> {
     try {
-      console.log(this.simulateError);
-      console.log(this.errorSimulationCount);
-      console.log(config.maxAttempts);
       if (
         this.simulateError &&
         this.errorSimulationCount < config.maxAttempts
       ) {
-        console.log("simulating error");
         this.errorSimulationCount++;
         throw new ApiError(404, "Simulated 404 Error", config.maxAttempts);
       }
@@ -53,7 +49,6 @@ export default class HackerNewsApiClient {
       }
 
       if (config.params && "feedType" in config.params) {
-        console.log(config.params);
         metadata.feedType = config.params.feedType as FeedType;
       }
 
@@ -72,8 +67,6 @@ export default class HackerNewsApiClient {
 
   private handleApiError(error: unknown, maxAttempts: number): never {
     if (error instanceof ApiError) {
-      console.log("yeah handling this shit");
-      console.log(error);
       error.maxAttempts = maxAttempts;
       throw error;
     }

@@ -1,5 +1,3 @@
-// src/screens/FeedScreen.tsx
-
 import React, {
   useEffect,
   useState,
