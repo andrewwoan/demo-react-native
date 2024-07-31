@@ -71,6 +71,7 @@ export default class HackerNewsApiClient {
       throw error;
     }
     if (axios.isAxiosError(error)) {
+      console.log("axios bro");
       const axiosError = error as AxiosError;
       if (axiosError.response) {
         throw new ApiError(
