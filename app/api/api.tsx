@@ -1,7 +1,7 @@
 // src/api/api.ts
 
 import axios, { AxiosError } from "axios";
-import { Story, FeedType } from "../model/types";
+import { Story, FeedType, HNComment } from "../model/types";
 import ApiError from "./ApiError";
 import {
   ApiResponse,
@@ -107,6 +107,20 @@ export default class HackerNewsApiClient {
       currentAttempt: 1,
       maxAttempts: 3,
       responseType: Object as unknown as new () => Story,
+    };
+
+    return this.makeRequest(config);
+  }
+
+  async fetchComment(commentId: number): Promise<ApiResponse<HNComment>> {
+    const config: ApiRequestConfig<HNComment> = {
+      endpoint: `/item/${commentId}.json`,
+      method: "GET",
+      params: { id: commentId },
+      timestamp: new Date(),
+      currentAttempt: 1,
+      maxAttempts: 3,
+      responseType: Object as unknown as new () => HNComment,
     };
 
     return this.makeRequest(config);

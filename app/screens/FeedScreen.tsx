@@ -56,11 +56,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleStoryPress = useCallback(
     (item: Story) => {
-      if (Platform.OS === "web") {
-        Linking.openURL(item.url);
-      } else {
-        navigation.navigate("Article", { url: item.url });
-      }
+      navigation.navigate("Article", { url: item.url, storyId: item.id });
     },
     [navigation]
   );

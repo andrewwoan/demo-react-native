@@ -1,6 +1,6 @@
 import { MMKV } from "react-native-mmkv";
 import HackerNewsApiClient from "./api";
-import { Story, FeedType, ApiResponse } from "../model/types";
+import { Story, FeedType, HNComment, ApiResponse } from "../model/types";
 import ApiError from "./ApiError";
 
 const storage = new MMKV();
@@ -45,6 +45,8 @@ export default class HackerNewsRepository {
 
         if (cachedStory) {
           stories.push(cachedStory);
+          // console.log("this is a cached story");
+          // console.log(cachedStory);
           if (!this.loadedStoryIds.has(cachedStory.id)) {
             this.loadedStoryIds.add(cachedStory.id);
             uniqueStoriesCount++;
@@ -52,6 +54,8 @@ export default class HackerNewsRepository {
         } else {
           const storyResponse = await this.apiClient.fetchStory(id);
           const story = storyResponse.data;
+          // console.log("this is a story");
+          // console.log(story);
           if (story && !this.loadedStoryIds.has(story.id)) {
             this.loadedStoryIds.add(story.id);
             stories.push(story);
@@ -66,6 +70,8 @@ export default class HackerNewsRepository {
         index++;
       }
 
+      // console.log("these are the stories");
+      // console.log(stories);
       return stories;
     } catch (error) {
       if (error instanceof ApiError) {
@@ -73,6 +79,74 @@ export default class HackerNewsRepository {
       }
       throw error;
     }
+  };
+
+  fetchCommentsRecursive = async (
+    storyId: number,
+    limit: number = 100,
+    maxDepth: number = Infinity
+  ): Promise<HNComment[]> => {
+    try {
+      const cacheKey = `comments_${storyId}_${limit}_${maxDepth}`;
+      const cachedComments = this.getCachedComments(cacheKey);
+
+      if (cachedComments) {
+        return cachedComments;
+      }
+
+      const storyResponse: ApiResponse<Story> = await this.apiClient.fetchStory(
+        storyId
+      );
+      const commentIds = storyResponse.data.kids?.slice(0, limit) || [];
+
+      const comments = await this.fetchNestedComments(commentIds, maxDepth);
+
+      this.cacheComments(cacheKey, comments);
+
+      return comments;
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      if (error instanceof ApiError) {
+        throw new ApiError(error.statusCode, error.message, error.maxAttempts);
+      }
+      throw error;
+    }
+  };
+
+  private fetchNestedComments = async (
+    commentIds: number[],
+    depth: number
+  ): Promise<HNComment[]> => {
+    if (depth === 0 || commentIds.length === 0) {
+      return [];
+    }
+
+    const comments = await Promise.all(
+      commentIds.map(async (id) => {
+        try {
+          const commentResponse = await this.apiClient.fetchComment(id);
+          const comment = commentResponse.data;
+
+          if (comment.kids && comment.kids.length > 0 && depth > 1) {
+            comment.replies = await this.fetchNestedComments(
+              comment.kids,
+              depth - 1
+            );
+          } else {
+            comment.replies = [];
+          }
+
+          // console.log("RETURNING COMMENT");
+          // console.log(comment);
+          return comment;
+        } catch (error) {
+          console.error(`Error fetching comment ${id}:`, error);
+          return null;
+        }
+      })
+    );
+
+    return comments.filter((comment): comment is HNComment => comment !== null);
   };
 
   private calculateExpirationTime(timestamp: Date): number {
@@ -91,6 +165,20 @@ export default class HackerNewsRepository {
       }
     }
     return null;
+  }
+
+  private getCachedComments(cacheKey: string): HNComment[] | null {
+    const cachedData = storage.getString(cacheKey);
+    if (cachedData) {
+      return JSON.parse(cachedData);
+    }
+    return null;
+  }
+
+  private cacheComments(cacheKey: string, comments: HNComment[]): void {
+    console.log("THIS IS ME CACHING COMMENTS SHEEESH DA BABIE");
+    console.log(comments);
+    storage.set(cacheKey, JSON.stringify(comments));
   }
 
   private cacheStory(story: Story, expirationTime: number): void {
