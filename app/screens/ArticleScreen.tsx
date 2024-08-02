@@ -1,5 +1,3 @@
-// src/screens/ArticleScreen.tsx
-
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -18,6 +16,17 @@ import HackerNewsRepository from "../api/repository";
 import HackerNewsApiClient from "../api/api";
 import { HNComment } from "../model/types";
 import RenderHtml from "react-native-render-html";
+
+import {
+  useFonts,
+  JosefinSans_100Thin,
+  JosefinSans_100Thin_Italic,
+  JosefinSans_200ExtraLight,
+  JosefinSans_400Regular,
+  JosefinSans_500Medium,
+  JosefinSans_600SemiBold,
+  JosefinSans_700Bold,
+} from "@expo-google-fonts/dev";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Article">;
 
@@ -145,6 +154,7 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    fontFamily: "JosefinSans_400Regular",
   },
   webView: {
     flex: 1,

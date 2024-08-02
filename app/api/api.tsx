@@ -125,4 +125,18 @@ export default class HackerNewsApiClient {
 
     return this.makeRequest(config);
   }
+
+  async fetchCommentTest(commentId: number): Promise<ApiResponse<Comment>> {
+    const config: ApiRequestConfig<Comment> = {
+      endpoint: `/item/${commentId}.json`,
+      method: "GET",
+      params: { id: commentId },
+      timestamp: new Date(),
+      currentAttempt: 1,
+      maxAttempts: 3,
+      responseType: Object as unknown as new () => Comment,
+    };
+
+    return this.makeRequest(config);
+  }
 }

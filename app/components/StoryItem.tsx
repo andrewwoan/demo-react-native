@@ -46,10 +46,9 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
       <Pressable onPress={() => onPress(item)} style={itemContainerStyle}>
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.author}>By: {item.by}</Text>
-        <Text>Index: {index}</Text>
 
         <Text style={styles.stats}>
-          Comments: {item.descendants || 0} | Score: {item.score}
+          See {item.descendants || 0} comments | Score: {item.score}
         </Text>
       </Pressable>
     </Animated.View>
@@ -59,15 +58,12 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
 const styles = StyleSheet.create({
   itemContainer: {
     padding: 15,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#f2efe7",
     margin: 5,
     marginHorizontal: 10,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderColor: "#000000",
+    borderWidth: 2,
+    fontFamily: "JosefinSans_400Regular",
   },
   title: {
     fontWeight: "bold",

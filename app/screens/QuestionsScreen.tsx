@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
-const ProfileScreen: React.FC = () => {
+const QuestionsScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>User Profile</Text>
@@ -29,4 +29,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProfileScreen;
+export default QuestionsScreen;

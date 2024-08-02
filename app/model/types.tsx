@@ -8,14 +8,25 @@ export interface Story {
   descendants: number;
 }
 
-export interface Comment {
+// export interface Comment {
+//   id: number;
+//   by: string;
+//   text: string;
+//   time: number;
+//   parent: number;
+//   kids?: number[];
+//   replies?: Comment[];
+// }
+
+export interface HNComment {
   id: number;
   by: string;
   text: string;
   time: number;
   parent: number;
   kids?: number[];
-  replies?: Comment[];
+  replies?: HNComment[];
+  deleted?: boolean;
 }
 
 export enum FeedType {
@@ -28,7 +39,9 @@ export type RootStackParamList = {
   Home: undefined;
   Feed: undefined;
   Article: { url: string; storyId: number };
-  Profile: undefined;
+  Questions: undefined;
+  Bookmarks: undefined;
+  Jobs: undefined;
 };
 
 export interface ApiResponseMetadata {

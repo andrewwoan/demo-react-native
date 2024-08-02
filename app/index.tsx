@@ -9,7 +9,9 @@ import { Ionicons } from "@expo/vector-icons";
 import HomeScreen from "./screens/HomeScreen";
 import FeedScreen from "./screens/FeedScreen";
 import ArticleScreen from "./screens/ArticleScreen";
-import ProfileScreen from "./screens/ProfileScreen";
+import BookmarksScreen from "./screens/BookmarksScreen";
+import JobsScreen from "./screens/JobsScreen";
+import QuestionsScreen from "./screens/QuestionsScreen";
 import { RootStackParamList } from "./model/types";
 import Toast from "react-native-toast-message";
 
@@ -35,8 +37,12 @@ export default function Index() {
               iconName = focused ? "home" : "home-outline";
             } else if (route.name === "Feed") {
               iconName = focused ? "list" : "list-outline";
-            } else if (route.name === "Profile") {
-              iconName = focused ? "person" : "person-outline";
+            } else if (route.name === "Bookmarks") {
+              iconName = focused ? "bookmarks" : "bookmarks-outline";
+            } else if (route.name === "Questions") {
+              iconName = focused ? "star" : "star-outline";
+            } else if (route.name === "Jobs") {
+              iconName = focused ? "briefcase" : "briefcase-outline";
             } else {
               iconName = "alert-circle"; // Default icon
             }
@@ -45,13 +51,15 @@ export default function Index() {
           },
         })}
       >
+        <Tab.Screen name="Jobs" component={JobsScreen} />
+        <Tab.Screen name="Questions" component={QuestionsScreen} />
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen
           name="Feed"
           component={FeedStack}
           options={{ headerShown: false }}
         />
-        <Tab.Screen name="Profile" component={ProfileScreen} />
+        <Tab.Screen name="Bookmarks" component={BookmarksScreen} />
       </Tab.Navigator>
       <Toast />
     </RecoilRoot>
