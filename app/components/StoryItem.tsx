@@ -49,6 +49,16 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
     marginTop: index === 0 ? 10 : 5,
   };
 
+  const handleBookmarkPress = () => {
+    // Handle bookmark press
+    console.log("Bookmark pressed for item:", item.id);
+  };
+
+  const handleSharePress = () => {
+    // Handle share press
+    console.log("Share pressed for item:", item.id);
+  };
+
   return (
     <Animated.View
       entering={FadeIn.delay(index * 5).springify()}
@@ -71,9 +81,19 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
           </View>
         </View>
 
-        <View style={styles.ctaContainer}>
-          <BookmarkIcon />
-          <ShareIcon />
+        <View
+          style={styles.ctaContainer}
+          onStartShouldSetResponder={() => true}
+          onResponderRelease={(event) => {
+            event.stopPropagation();
+          }}
+        >
+          <Pressable onPress={handleBookmarkPress}>
+            <BookmarkIcon width={26} height={26} />
+          </Pressable>
+          <Pressable onPress={handleSharePress}>
+            <ShareIcon width={26} height={26} />
+          </Pressable>
         </View>
       </Pressable>
     </Animated.View>
