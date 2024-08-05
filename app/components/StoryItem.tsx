@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { Pressable, Text, StyleSheet, ViewStyle, View } from "react-native";
 import Animated, {
   FadeIn,
@@ -19,16 +19,28 @@ interface AnimatedStoryItemProps {
   index: number;
 }
 
-const TriangleArrow = ({ direction = "up" }) => (
-  <Svg width="20" height="20" viewBox="0 0 20 20">
-    <Path
-      d={direction === "up" ? "M10 2L18 18H2L10 2Z" : "M10 18L2 2H18L10 18Z"}
-      fill="gray"
-      stroke="black"
-      strokeWidth="2"
-      strokeLinejoin="round"
-    />
-  </Svg>
+interface TriangleArrowProps {
+  direction: "up" | "down";
+  isActive: boolean;
+  onPress: () => void;
+}
+
+const TriangleArrow: React.FC<TriangleArrowProps> = ({
+  direction,
+  isActive,
+  onPress,
+}) => (
+  <Pressable onPress={onPress}>
+    <Svg width="20" height="20" viewBox="0 0 20 20">
+      <Path
+        d={direction === "up" ? "M10 2L18 18H2L10 2Z" : "M10 18L2 2H18L10 18Z"}
+        fill={isActive ? (direction === "up" ? "orange" : "blue") : "gray"}
+        stroke="black"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  </Pressable>
 );
 
 const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
@@ -36,6 +48,8 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
   onPress,
   index,
 }) => {
+  const [voteStatus, setVoteStatus] = useState<"up" | "down" | null>(null);
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       {
@@ -50,14 +64,21 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
   };
 
   const handleBookmarkPress = () => {
-    // Handle bookmark press
     console.log("Bookmark pressed for item:", item.id);
   };
 
   const handleSharePress = () => {
-    // Handle share press
     console.log("Share pressed for item:", item.id);
   };
+
+  const handleVote = (direction: "up" | "down") => {
+    setVoteStatus((prevStatus) =>
+      prevStatus === direction ? null : direction
+    );
+  };
+
+  const scoreColor =
+    voteStatus === "up" ? "orange" : voteStatus === "down" ? "blue" : "black";
 
   return (
     <Animated.View
@@ -68,9 +89,19 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
       <Pressable onPress={() => onPress(item)} style={itemContainerStyle}>
         <View style={styles.leftContainer}>
           <View style={styles.scoreContainer}>
-            <TriangleArrow direction="up" />
-            <Text style={styles.score}>{item.score}</Text>
-            <TriangleArrow direction="down" />
+            <TriangleArrow
+              direction="up"
+              isActive={voteStatus === "up"}
+              onPress={() => handleVote("up")}
+            />
+            <Text style={[styles.score, { color: scoreColor }]}>
+              {item.score}
+            </Text>
+            <TriangleArrow
+              direction="down"
+              isActive={voteStatus === "down"}
+              onPress={() => handleVote("down")}
+            />
           </View>
           <View style={styles.contentContainer}>
             <Text style={styles.title}>{item.title}</Text>
@@ -99,6 +130,15 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
     </Animated.View>
   );
 };
+
+// ... (styles remain the same)
+
+export default memo(AnimatedStoryItem, (prevProps, nextProps) => {
+  return (
+    prevProps.item.id === nextProps.item.id &&
+    prevProps.index === nextProps.index
+  );
+});
 
 const styles = StyleSheet.create({
   itemContainer: {
@@ -152,11 +192,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#999",
   },
-});
-
-export default memo(AnimatedStoryItem, (prevProps, nextProps) => {
-  return (
-    prevProps.item.id === nextProps.item.id &&
-    prevProps.index === nextProps.index
-  );
 });

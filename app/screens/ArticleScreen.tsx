@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   Linking,
   Pressable,
+  Button,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -34,6 +35,16 @@ const apiClient = new HackerNewsApiClient();
 const repository = new HackerNewsRepository(apiClient);
 
 const ArticleScreen: React.FC<Props> = ({ route }) => {
+  let [fontsLoaded] = useFonts({
+    JosefinSans_100Thin,
+    JosefinSans_100Thin_Italic,
+    JosefinSans_200ExtraLight,
+    JosefinSans_400Regular,
+    JosefinSans_500Medium,
+    JosefinSans_600SemiBold,
+    JosefinSans_700Bold,
+  });
+
   const { url, storyId } = route.params;
   const [comments, setComments] = useState<HNComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +52,9 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
   const [collapsedComments, setCollapsedComments] = useState<Set<number>>(
     new Set()
   );
+  const [loadingMoreComments, setLoadingMoreComments] = useState<{
+    [key: number]: boolean;
+  }>({});
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -49,7 +63,7 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
         const fetchedComments = await repository.fetchCommentsRecursive(
           storyId,
           100,
-          5
+          3
         );
         setComments(fetchedComments);
       } catch (error) {
@@ -85,11 +99,46 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
     return count;
   };
 
+  const loadMoreComments = async (commentId: number) => {
+    setLoadingMoreComments((prev) => ({ ...prev, [commentId]: true }));
+    try {
+      const moreComments = await repository.fetchMoreComments(commentId);
+      setComments((prevComments) =>
+        updateCommentsTree(prevComments, commentId, moreComments)
+      );
+    } catch (error) {
+      console.error("Error loading more comments:", error);
+    } finally {
+      setLoadingMoreComments((prev) => ({ ...prev, [commentId]: false }));
+    }
+  };
+
+  const updateCommentsTree = (
+    comments: HNComment[],
+    targetId: number,
+    newReplies: HNComment[]
+  ): HNComment[] => {
+    return comments.map((comment) => {
+      if (comment.id === targetId) {
+        return { ...comment, replies: newReplies };
+      }
+      if (comment.replies) {
+        return {
+          ...comment,
+          replies: updateCommentsTree(comment.replies, targetId, newReplies),
+        };
+      }
+      return comment;
+    });
+  };
+
   const renderComment = React.useCallback(
     ({ item, depth = 0 }: { item: HNComment; depth?: number }) => {
       const isCollapsed = collapsedComments.has(item.id);
       const hasReplies = item.replies && item.replies.length > 0;
       const hiddenRepliesCount = hasReplies ? countReplies(item) : 0;
+      const showLoadMore =
+        depth === 2 && item.kids && item.kids.length > item.replies!.length;
 
       return (
         <View style={[styles.commentContainer, { marginLeft: depth * 20 }]}>
@@ -102,6 +151,7 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
             <RenderHtml
               contentWidth={width}
               source={{ html: item.text || "" }}
+              tagsStyles={tagsStyles}
             />
           )}
           {isCollapsed && hiddenRepliesCount > 0 && (
@@ -117,10 +167,27 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
                 {renderComment({ item: reply, depth: depth + 1 })}
               </View>
             ))}
+          {showLoadMore && (
+            <Button
+              title={
+                loadingMoreComments[item.id]
+                  ? "Loading..."
+                  : "Load more replies"
+              }
+              onPress={() => loadMoreComments(item.id)}
+              disabled={loadingMoreComments[item.id]}
+            />
+          )}
         </View>
       );
     },
-    [collapsedComments, width, toggleCollapse]
+    [
+      collapsedComments,
+      width,
+      toggleCollapse,
+      loadingMoreComments,
+      loadMoreComments,
+    ]
   );
 
   return (
@@ -151,6 +218,15 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
   );
 };
 
+const tagsStyles = {
+  body: {
+    fontFamily: "JosefinSans_400Regular",
+  },
+  div: {
+    fontFamily: "JosefinSans_400Regular",
+  },
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -162,13 +238,16 @@ const styles = StyleSheet.create({
   commentsContainer: {
     flex: 1,
     padding: 10,
+    fontFamily: "JosefinSans_400Regular",
   },
   commentsTitle: {
     fontSize: 18,
     fontWeight: "bold",
+    fontFamily: "JosefinSans_400Regular",
     marginBottom: 10,
   },
   commentContainer: {
+    fontFamily: "JosefinSans_400Regular",
     marginBottom: 10,
     padding: 10,
     backgroundColor: "#f0f0f0",
@@ -176,10 +255,12 @@ const styles = StyleSheet.create({
   },
   commentAuthor: {
     fontWeight: "bold",
+    fontFamily: "JosefinSans_400Regular",
     marginBottom: 5,
   },
   hiddenRepliesText: {
     fontStyle: "italic",
+    fontFamily: "JosefinSans_400Regular",
     color: "#666",
     marginTop: 5,
   },

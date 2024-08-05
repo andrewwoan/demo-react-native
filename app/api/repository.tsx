@@ -45,8 +45,6 @@ export default class HackerNewsRepository {
 
         if (cachedStory) {
           stories.push(cachedStory);
-          // console.log("this is a cached story");
-          // console.log(cachedStory);
           if (!this.loadedStoryIds.has(cachedStory.id)) {
             this.loadedStoryIds.add(cachedStory.id);
             uniqueStoriesCount++;
@@ -54,8 +52,6 @@ export default class HackerNewsRepository {
         } else {
           const storyResponse = await this.apiClient.fetchStory(id);
           const story = storyResponse.data;
-          // console.log("this is a story");
-          // console.log(story);
           if (story && !this.loadedStoryIds.has(story.id)) {
             this.loadedStoryIds.add(story.id);
             stories.push(story);
@@ -70,8 +66,6 @@ export default class HackerNewsRepository {
         index++;
       }
 
-      // console.log("these are the stories");
-      // console.log(stories);
       return stories;
     } catch (error) {
       if (error instanceof ApiError) {
@@ -84,7 +78,7 @@ export default class HackerNewsRepository {
   fetchCommentsRecursive = async (
     storyId: number,
     limit: number = 100,
-    maxDepth: number = Infinity
+    maxDepth: number = 3
   ): Promise<HNComment[]> => {
     try {
       const cacheKey = `comments_${storyId}_${limit}_${maxDepth}`;
@@ -106,6 +100,25 @@ export default class HackerNewsRepository {
       return comments;
     } catch (error) {
       console.error("Error fetching comments:", error);
+      if (error instanceof ApiError) {
+        throw new ApiError(error.statusCode, error.message, error.maxAttempts);
+      }
+      throw error;
+    }
+  };
+
+  fetchMoreComments = async (commentId: number): Promise<HNComment[]> => {
+    try {
+      const commentResponse = await this.apiClient.fetchComment(commentId);
+      const comment = commentResponse.data;
+
+      if (comment.kids && comment.kids.length > 0) {
+        return this.fetchNestedComments(comment.kids, Infinity);
+      }
+
+      return [];
+    } catch (error) {
+      console.error("Error fetching more comments:", error);
       if (error instanceof ApiError) {
         throw new ApiError(error.statusCode, error.message, error.maxAttempts);
       }
@@ -136,8 +149,6 @@ export default class HackerNewsRepository {
             comment.replies = [];
           }
 
-          // console.log("RETURNING COMMENT");
-          // console.log(comment);
           return comment;
         } catch (error) {
           console.error(`Error fetching comment ${id}:`, error);
@@ -176,8 +187,6 @@ export default class HackerNewsRepository {
   }
 
   private cacheComments(cacheKey: string, comments: HNComment[]): void {
-    console.log("THIS IS ME CACHING COMMENTS SHEEESH DA BABIE");
-    console.log(comments);
     storage.set(cacheKey, JSON.stringify(comments));
   }
 
