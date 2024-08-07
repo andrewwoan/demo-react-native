@@ -104,12 +104,10 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
   //if the ID exists in the set, remove it from the list, which means it will show
   //if the ID does not exist in the set, add it to hide it, this will switch the isCollapsed = true
   const toggleCollapse = (commentId: number) => {
-    console.log(commentId);
     setCollapsedComments((prevCollapsed) => {
       const newCollapsed = new Set(prevCollapsed);
       if (newCollapsed.has(commentId)) {
         newCollapsed.delete(commentId);
-        console.log("THIS IS TRIGGERING THE COLLAPSE");
       } else {
         newCollapsed.add(commentId);
       }
