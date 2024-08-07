@@ -16,7 +16,7 @@ export default class HackerNewsRepository {
 
   getStories = async (
     feedType: FeedType,
-    page: number = 0
+    page: number = 0,
   ): Promise<Story[]> => {
     try {
       let storyIds = this.getCachedStoryIds(feedType);
@@ -29,7 +29,7 @@ export default class HackerNewsRepository {
       }
 
       const uniqueNewStoryIds = Array.from(new Set(storyIds)).filter(
-        (id) => !this.loadedStoryIds.has(id)
+        (id) => !this.loadedStoryIds.has(id),
       );
 
       let stories: Story[] = [];
@@ -58,7 +58,7 @@ export default class HackerNewsRepository {
             uniqueStoriesCount++;
             this.cacheStory(
               story,
-              this.calculateExpirationTime(storyResponse.metadata.timestamp)
+              this.calculateExpirationTime(storyResponse.metadata.timestamp),
             );
           }
         }
@@ -91,7 +91,7 @@ export default class HackerNewsRepository {
     storyId: number,
     parentCommentId: number | null = null,
     limit: number = 100,
-    maxDepth: number = 3
+    maxDepth: number = 3,
   ): Promise<HNComment[]> => {
     try {
       const cacheKey = `comments_${storyId}_${parentCommentId}_${limit}_${maxDepth}`;
@@ -129,10 +129,10 @@ export default class HackerNewsRepository {
     }
   };
 
-  //
+  //Basically get the comments of the comment we want to show
   private fetchNestedComments = async (
     commentIds: number[],
-    depth: number
+    depth: number,
   ): Promise<HNComment[]> => {
     if (depth === 0 || commentIds.length === 0) {
       return [];
@@ -147,7 +147,7 @@ export default class HackerNewsRepository {
           if (comment.kids && comment.kids.length > 0 && depth > 1) {
             comment.replies = await this.fetchNestedComments(
               comment.kids,
-              depth - 1
+              depth - 1,
             );
           } else {
             comment.replies = [];
@@ -158,7 +158,7 @@ export default class HackerNewsRepository {
           console.error(`Error fetching comment ${id}:`, error);
           return null;
         }
-      })
+      }),
     );
 
     return comments.filter((comment): comment is HNComment => comment !== null);
@@ -220,5 +220,27 @@ export default class HackerNewsRepository {
     const keys = storage.getAllKeys();
     keys.forEach((key) => storage.delete(key));
     this.loadedStoryIds.clear();
+  };
+
+  // Bookmarks
+  getBookmarks = (): number[] => {
+    const bookmarksString = storage.getString("bookmarks");
+    return bookmarksString ? JSON.parse(bookmarksString) : [];
+  };
+
+  addBookmark = (storyId: number): void => {
+    const bookmarks = this.getBookmarks();
+    if (!bookmarks.includes(storyId)) {
+      bookmarks.push(storyId);
+      storage.set("bookmarks", JSON.stringify(bookmarks));
+    }
+  };
+
+  removeBookmark = (storyId: number): void => {
+    const bookmarks = this.getBookmarks();
+    const updatedBookmarks = bookmarks.filter((id) => id !== storyId);
+    if (updatedBookmarks.length !== bookmarks.length) {
+      storage.set("bookmarks", JSON.stringify(updatedBookmarks));
+    }
   };
 }
