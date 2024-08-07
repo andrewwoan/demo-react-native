@@ -129,6 +129,7 @@ export default class HackerNewsRepository {
     }
   };
 
+  //
   private fetchNestedComments = async (
     commentIds: number[],
     depth: number

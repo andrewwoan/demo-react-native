@@ -207,6 +207,11 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
     ({ item, depth = 0 }: { item: HNComment; depth?: number }) => {
       const isCollapsed = collapsedComments.has(item.id);
 
+      const isRootComment = depth === 0 ? true : false;
+      console.log("this is root comment");
+      console.log(depth);
+      console.log(isRootComment);
+
       const hasReplies = item.replies && item.replies.length > 0;
 
       //If it has replies, count how many, if it doesn't just set it to 0
@@ -223,6 +228,7 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
         ) {
           return true;
         }
+
         return (
           comment.replies?.some((reply) =>
             hasQualifyingDescendant(reply, currentDepth + 1)
@@ -255,7 +261,8 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
         >
           <Pressable onPress={() => hasReplies && toggleCollapse(item.id)}>
             <Text style={styles.commentAuthor}>
-              {item.by} {hasReplies && (isCollapsed ? "▼" : "▲")}
+              {item.by}{" "}
+              {!isRootComment && hasReplies && (isCollapsed ? "▼" : "▲")}
             </Text>
           </Pressable>
           {!isCollapsed && (
