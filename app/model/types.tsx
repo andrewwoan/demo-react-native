@@ -8,16 +8,6 @@ export interface Story {
   descendants: number;
 }
 
-// export interface Comment {
-//   id: number;
-//   by: string;
-//   text: string;
-//   time: number;
-//   parent: number;
-//   kids?: number[];
-//   replies?: Comment[];
-// }
-
 export interface HNComment {
   id: number;
   by: string;

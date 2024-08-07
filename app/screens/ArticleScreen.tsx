@@ -58,7 +58,7 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
   const [loading, setLoading] = useState(true);
   const { width } = useWindowDimensions();
   const [collapsedComments, setCollapsedComments] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
   const [loadingMoreComments, setLoadingMoreComments] = useState<{
     [key: number]: boolean;
@@ -78,7 +78,7 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
           storyId,
           null,
           LOADED_COMMENT_LIMIT,
-          INITIAL_COMMENT_DEPTH
+          INITIAL_COMMENT_DEPTH,
         );
         setComments(fetchedComments);
       } catch (error) {
@@ -104,10 +104,12 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
   //if the ID exists in the set, remove it from the list, which means it will show
   //if the ID does not exist in the set, add it to hide it, this will switch the isCollapsed = true
   const toggleCollapse = (commentId: number) => {
+    console.log(commentId);
     setCollapsedComments((prevCollapsed) => {
       const newCollapsed = new Set(prevCollapsed);
       if (newCollapsed.has(commentId)) {
         newCollapsed.delete(commentId);
+        console.log("THIS IS TRIGGERING THE COLLAPSE");
       } else {
         newCollapsed.add(commentId);
       }
@@ -134,10 +136,10 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
         storyId,
         commentId,
         LOADED_COMMENT_LIMIT,
-        LOAD_MORE_DEPTH
+        LOAD_MORE_DEPTH,
       );
       setComments((prevComments) =>
-        updateCommentsTree(prevComments, commentId, moreComments)
+        updateCommentsTree(prevComments, commentId, moreComments),
       );
       setThreadDepth(currentDepth + LOAD_MORE_DEPTH);
     } catch (error) {
@@ -187,7 +189,7 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
   const updateCommentsTree = (
     comments: HNComment[],
     targetId: number,
-    newReplies: HNComment[]
+    newReplies: HNComment[],
   ): HNComment[] => {
     return comments.map((comment) => {
       if (comment.id === targetId) {
@@ -207,11 +209,6 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
     ({ item, depth = 0 }: { item: HNComment; depth?: number }) => {
       const isCollapsed = collapsedComments.has(item.id);
 
-      const isRootComment = depth === 0 ? true : false;
-      console.log("this is root comment");
-      console.log(depth);
-      console.log(isRootComment);
-
       const hasReplies = item.replies && item.replies.length > 0;
 
       //If it has replies, count how many, if it doesn't just set it to 0
@@ -219,7 +216,7 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
 
       const hasQualifyingDescendant = (
         comment: HNComment,
-        currentDepth: number
+        currentDepth: number,
       ): boolean => {
         if (
           currentDepth > VIEW_THREAD_DEPTH &&
@@ -231,7 +228,7 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
 
         return (
           comment.replies?.some((reply) =>
-            hasQualifyingDescendant(reply, currentDepth + 1)
+            hasQualifyingDescendant(reply, currentDepth + 1),
           ) || false
         );
       };
@@ -244,7 +241,7 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
         item.kids &&
         item.kids.length > 0 &&
         !item.replies?.some((reply) =>
-          hasQualifyingDescendant(reply, depth + 1)
+          hasQualifyingDescendant(reply, depth + 1),
         );
 
       //therefore, if showviewthread is true, we negate it to false and cancel the showLoadMore
@@ -261,17 +258,16 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
         >
           <Pressable onPress={() => hasReplies && toggleCollapse(item.id)}>
             <Text style={styles.commentAuthor}>
-              {item.by}{" "}
-              {!isRootComment && hasReplies && (isCollapsed ? "▼" : "▲")}
+              {item.by} {hasReplies && (isCollapsed ? "▼" : "▲")}
             </Text>
           </Pressable>
-          {!isCollapsed && (
+          {
             <RenderHtml
               contentWidth={width}
               source={{ html: item.text || "" }}
               tagsStyles={tagsStyles}
             />
-          )}
+          }
           {isCollapsed && hiddenRepliesCount > 0 && (
             <Text style={styles.hiddenRepliesText}>
               {hiddenRepliesCount} hidden{" "}
@@ -300,7 +296,13 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
         </View>
       );
     },
-    [collapsedComments, width, toggleCollapse, loadMoreComments, viewFullThread]
+    [
+      collapsedComments,
+      width,
+      toggleCollapse,
+      loadMoreComments,
+      viewFullThread,
+    ],
   );
 
   const renderThreadView = () => (
