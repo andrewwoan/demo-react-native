@@ -75,23 +75,45 @@ export default class HackerNewsRepository {
     }
   };
 
+  fetchFullThread = async (commentId: number): Promise<HNComment> => {
+    try {
+      const commentResponse = await this.apiClient.fetchComment(commentId);
+      const comment = commentResponse.data;
+      comment.replies = await this.fetchNestedComments(comment.kids || [], 3);
+      return comment;
+    } catch (error) {
+      console.error("Error fetching full thread:", error);
+      throw error;
+    }
+  };
+
   fetchCommentsRecursive = async (
     storyId: number,
+    parentCommentId: number | null = null,
     limit: number = 100,
     maxDepth: number = 3
   ): Promise<HNComment[]> => {
     try {
-      const cacheKey = `comments_${storyId}_${limit}_${maxDepth}`;
+      const cacheKey = `comments_${storyId}_${parentCommentId}_${limit}_${maxDepth}`;
       const cachedComments = this.getCachedComments(cacheKey);
 
       if (cachedComments) {
         return cachedComments;
       }
 
-      const storyResponse: ApiResponse<Story> = await this.apiClient.fetchStory(
-        storyId
-      );
-      const commentIds = storyResponse.data.kids?.slice(0, limit) || [];
+      let commentIds: number[];
+      // If we are fetching comments, we can either fetch them from the parent level
+      // Or if the parent comment already exists, fetch the comment from that parent to get its replies
+      // this is in the case for loading more comments
+      if (parentCommentId === null) {
+        const storyResponse: ApiResponse<Story> =
+          await this.apiClient.fetchStory(storyId);
+        commentIds = storyResponse.data.kids?.slice(0, limit) || [];
+      } else {
+        const parentCommentResponse: ApiResponse<HNComment> =
+          await this.apiClient.fetchComment(parentCommentId);
+        commentIds = parentCommentResponse.data.kids || [];
+      }
 
       const comments = await this.fetchNestedComments(commentIds, maxDepth);
 
@@ -100,25 +122,6 @@ export default class HackerNewsRepository {
       return comments;
     } catch (error) {
       console.error("Error fetching comments:", error);
-      if (error instanceof ApiError) {
-        throw new ApiError(error.statusCode, error.message, error.maxAttempts);
-      }
-      throw error;
-    }
-  };
-
-  fetchMoreComments = async (commentId: number): Promise<HNComment[]> => {
-    try {
-      const commentResponse = await this.apiClient.fetchComment(commentId);
-      const comment = commentResponse.data;
-
-      if (comment.kids && comment.kids.length > 0) {
-        return this.fetchNestedComments(comment.kids, Infinity);
-      }
-
-      return [];
-    } catch (error) {
-      console.error("Error fetching more comments:", error);
       if (error instanceof ApiError) {
         throw new ApiError(error.statusCode, error.message, error.maxAttempts);
       }
@@ -187,6 +190,8 @@ export default class HackerNewsRepository {
   }
 
   private cacheComments(cacheKey: string, comments: HNComment[]): void {
+    console.log("THIS IS ME CACHING COMMENTS SHEEESH DA BABIE");
+    console.log(comments);
     storage.set(cacheKey, JSON.stringify(comments));
   }
 

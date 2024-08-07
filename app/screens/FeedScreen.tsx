@@ -43,8 +43,6 @@ type Props = {
 const apiClient = new HackerNewsApiClient();
 const repository = new HackerNewsRepository(apiClient);
 
-const MAX_RETRY_ATTEMPTS = 3;
-
 const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const [feed, setFeed] = useRecoilState(feedState);
   const [feedType, setFeedType] = useRecoilState(feedTypeState);
