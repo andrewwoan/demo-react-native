@@ -33,7 +33,11 @@ const TriangleArrow: React.FC<TriangleArrowProps> = ({
   <Pressable onPress={onPress}>
     <Svg width="20" height="20" viewBox="0 0 20 20">
       <Path
-        d={direction === "up" ? "M10 2L18 18H2L10 2Z" : "M10 18L2 2H18L10 18Z"}
+        d={
+          direction === "up"
+            ? "M2.139 14.75 9.5 2l7.361 12.75H2.14Z"
+            : "M16.861 1.25 9.5 14 2.139 1.25H16.86Z"
+        }
         fill={isActive ? (direction === "up" ? "orange" : "blue") : "gray"}
         stroke="black"
         strokeWidth="2"
@@ -73,7 +77,7 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
 
   const handleVote = (direction: "up" | "down") => {
     setVoteStatus((prevStatus) =>
-      prevStatus === direction ? null : direction
+      prevStatus === direction ? null : direction,
     );
   };
 
@@ -120,7 +124,12 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
           }}
         >
           <Pressable onPress={handleBookmarkPress}>
-            <BookmarkIcon width={26} height={26} />
+            <BookmarkIcon
+              type={"story"}
+              itemId={item.id}
+              width={26}
+              height={26}
+            />
           </Pressable>
           <Pressable onPress={handleSharePress}>
             <ShareIcon width={26} height={26} />
@@ -130,8 +139,6 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
     </Animated.View>
   );
 };
-
-// ... (styles remain the same)
 
 export default memo(AnimatedStoryItem, (prevProps, nextProps) => {
   return (

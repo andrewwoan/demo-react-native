@@ -20,17 +20,18 @@ export default class HackerNewsRepository {
   ): Promise<Story[]> => {
     try {
       let storyIds = this.getCachedStoryIds(feedType);
+      let uniqueNewStoryIds: number[];
 
       if (!storyIds) {
         const response: ApiResponse<number[]> =
           await this.apiClient.fetchStoryIds(feedType);
         storyIds = response.data;
+
+        uniqueNewStoryIds = Array.from(new Set(storyIds)).filter(
+          (id) => !this.loadedStoryIds.has(id),
+        );
         this.cacheStoryIds(feedType, storyIds);
       }
-
-      const uniqueNewStoryIds = Array.from(new Set(storyIds)).filter(
-        (id) => !this.loadedStoryIds.has(id),
-      );
 
       let stories: Story[] = [];
       let uniqueStoriesCount = 0;
@@ -40,16 +41,22 @@ export default class HackerNewsRepository {
         uniqueStoriesCount < this.itemsPerPage &&
         index < uniqueNewStoryIds.length
       ) {
+        console.log("this is the unique story ids");
+        console.log(uniqueNewStoryIds);
         const id = uniqueNewStoryIds[index];
         const cachedStory = this.getCachedStory(id);
 
+        console.log("-----------------");
+
         if (cachedStory) {
+          console.log("WE ARE GETTING A CACHED STORY");
           stories.push(cachedStory);
           if (!this.loadedStoryIds.has(cachedStory.id)) {
             this.loadedStoryIds.add(cachedStory.id);
             uniqueStoriesCount++;
           }
         } else {
+          console.log("WE ARE NOT GETTING A CACHED STORY");
           const storyResponse = await this.apiClient.fetchStory(id);
           const story = storyResponse.data;
           if (story && !this.loadedStoryIds.has(story.id)) {
@@ -191,8 +198,6 @@ export default class HackerNewsRepository {
   }
 
   private cacheComments(cacheKey: string, comments: HNComment[]): void {
-    console.log("THIS IS ME CACHING COMMENTS SHEEESH DA BABIE");
-    console.log(comments);
     storage.set(cacheKey, JSON.stringify(comments));
   }
 
@@ -223,24 +228,50 @@ export default class HackerNewsRepository {
   };
 
   // Bookmarks
-  getBookmarks = (): number[] => {
-    const bookmarksString = storage.getString("bookmarks");
+
+  private getBookmarksByType = (type: string): number[] => {
+    const bookmarksString = storage.getString(`bookmarks_${type}`);
     return bookmarksString ? JSON.parse(bookmarksString) : [];
   };
 
-  addBookmark = (storyId: number): void => {
-    const bookmarks = this.getBookmarks();
+  private setBookmarksByType = (type: string, bookmarks: number[]): void => {
+    storage.set(`bookmarks_${type}`, JSON.stringify(bookmarks));
+  };
+
+  getBookmarks = (type: string): number[] => {
+    return this.getBookmarksByType(type);
+  };
+
+  addBookmark = (type: string, storyId: number): void => {
+    const bookmarks = this.getBookmarksByType(type);
     if (!bookmarks.includes(storyId)) {
-      bookmarks.push(storyId);
-      storage.set("bookmarks", JSON.stringify(bookmarks));
+      const updatedBookmarks = [...bookmarks, storyId];
+      this.setBookmarksByType(type, updatedBookmarks);
     }
   };
 
-  removeBookmark = (storyId: number): void => {
-    const bookmarks = this.getBookmarks();
+  removeBookmark = (type: string, storyId: number): void => {
+    const bookmarks = this.getBookmarksByType(type);
     const updatedBookmarks = bookmarks.filter((id) => id !== storyId);
     if (updatedBookmarks.length !== bookmarks.length) {
-      storage.set("bookmarks", JSON.stringify(updatedBookmarks));
+      this.setBookmarksByType(type, updatedBookmarks);
     }
+  };
+
+  isBookmarked = (type: string, storyId: number): boolean => {
+    const bookmarks = this.getBookmarksByType(type);
+    return bookmarks.includes(storyId);
+  };
+
+  getBookmarkedStories = async (type: string): Promise<Story[]> => {
+    const bookmarkIds = this.getBookmarksByType(type);
+    const stories = await Promise.all(
+      bookmarkIds.map(async (id) => {
+        const cachedStory = this.getCachedStory(id);
+        console.log("we are returning this");
+        return cachedStory;
+      }),
+    );
+    return stories.filter((story): story is Story => story !== null);
   };
 }

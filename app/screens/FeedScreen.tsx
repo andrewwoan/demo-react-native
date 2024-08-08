@@ -52,11 +52,23 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
   const [page, setPage] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", async () => {
+      setRefreshing(true);
+      setRetryCount(0);
+      setPage(0);
+      setFeed([]);
+      await loadStories(true);
+      setRefreshing(false);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   const handleStoryPress = useCallback(
     (item: Story) => {
       navigation.navigate("Article", { url: item.url, storyId: item.id });
     },
-    [navigation]
+    [navigation],
   );
 
   const retryCountRef = useRef(0);
@@ -69,6 +81,9 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
         const newPage = refresh ? 0 : page;
         const stories = await repository.getStories(feedType, newPage);
 
+        console.log("this is the refresh status", refresh);
+        console.log("this is the feedtype", feedType);
+        console.log("This is the page", newPage);
         setFeed((prevFeed) => (refresh ? stories : [...prevFeed, ...stories]));
         setPage((prevPage) => newPage + 1);
         if (stories) {
@@ -105,7 +120,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
         setLoading(false);
       }
     },
-    [feedType, loading, page, setFeed]
+    [feedType, loading, page, setFeed],
   );
 
   useEffect(() => {
@@ -128,7 +143,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
         setFeed([]);
       }
     },
-    [feedType]
+    [feedType],
   );
 
   const handleEndReached = useCallback(() => {

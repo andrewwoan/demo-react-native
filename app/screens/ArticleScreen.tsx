@@ -10,7 +10,6 @@ import {
   Pressable,
   Button,
   Animated,
-  TouchableOpacity,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -331,9 +330,9 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
           }
         }}
       />
-      <TouchableOpacity style={styles.floatingButton} onPress={toggleDrawer}>
+      <Pressable style={styles.floatingButton} onPress={toggleDrawer}>
         <Ionicons name="chatbubble-outline" size={24} color="white" />
-      </TouchableOpacity>
+      </Pressable>
       <Animated.View
         style={[
           styles.drawer,
@@ -343,9 +342,9 @@ const ArticleScreen: React.FC<Props> = ({ route }) => {
         ]}
       >
         <View style={styles.drawerHeader}>
-          <TouchableOpacity onPress={toggleDrawer}>
+          <Pressable onPress={toggleDrawer}>
             <Ionicons name="close" size={24} color="black" />
-          </TouchableOpacity>
+          </Pressable>
           <Text style={styles.commentsTitle}>
             {threadView ? `Thread: ${threadView.by}` : "Comments"}
           </Text>
