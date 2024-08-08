@@ -14,6 +14,83 @@ export default class HackerNewsRepository {
     this.apiClient = apiClient;
   }
 
+  // getStories = async (
+  //   feedType: FeedType,
+  //   page: number = 0,
+  // ): Promise<Story[]> => {
+  //   try {
+  //     let storyIds = this.getCachedStoryIds(feedType);
+  //     let uniqueNewStoryIds: number[] = [];
+
+  //     if (!storyIds) {
+  //       const response: ApiResponse<number[]> =
+  //         await this.apiClient.fetchStoryIds(feedType);
+  //       // storyIds = response.data;
+
+  //       console.log("storyIds before");
+  //       console.log(storyIds);
+  //       storyIds = Array.from(new Set(response.data)).filter(
+  //         (id) => !this.loadedStoryIds.has(id),
+  //       );
+
+  //       console.log("storyIds after");
+  //       console.log(storyIds);
+  //       this.cacheStoryIds(feedType, storyIds);
+  //     }
+
+  //     console.log(
+  //       "this is the story ides and if they have duplicate vlaues or not",
+  //     );
+  //     console.log(new Set(storyIds).size !== storyIds.length);
+
+  //     let stories: Story[] = [];
+  //     let uniqueStoriesCount = 0;
+  //     let index = page * this.itemsPerPage;
+
+  //     while (
+  //       uniqueStoriesCount < this.itemsPerPage &&
+  //       index < storyIds.length
+  //     ) {
+  //       console.log(storyIds);
+  //       const id = storyIds[index];
+  //       const cachedStory = this.getCachedStory(id);
+
+  //       console.log("-----------------");
+
+  //       if (cachedStory) {
+  //         stories.push(cachedStory);
+  //         if (!this.loadedStoryIds.has(cachedStory.id)) {
+  //           this.loadedStoryIds.add(cachedStory.id);
+  //           uniqueStoriesCount++;
+  //         }
+  //       } else {
+  //         const storyResponse = await this.apiClient.fetchStory(id);
+  //         const story = storyResponse.data;
+  //         if (story && !this.loadedStoryIds.has(story.id)) {
+  //           this.loadedStoryIds.add(story.id);
+  //           stories.push(story);
+  //           uniqueStoriesCount++;
+  //           this.cacheStory(
+  //             story,
+  //             this.calculateExpirationTime(storyResponse.metadata.timestamp),
+  //           );
+  //         }
+  //       }
+
+  //       index++;
+  //     }
+
+  //     return stories;
+  //   } catch (error) {
+  //     if (error instanceof ApiError) {
+  //       throw new ApiError(404, "Simulated 404 Error", 5);
+  //     }
+  //     throw error;
+  //   }
+  // };
+
+  removeDuplicates(arr: number[]) {}
+
   getStories = async (
     feedType: FeedType,
     page: number = 0,
@@ -22,16 +99,21 @@ export default class HackerNewsRepository {
       let storyIds = this.getCachedStoryIds(feedType);
       let uniqueNewStoryIds: number[];
 
+      let removedUniqueIds: number[] = [];
+
       if (!storyIds) {
         const response: ApiResponse<number[]> =
           await this.apiClient.fetchStoryIds(feedType);
         storyIds = response.data;
 
-        uniqueNewStoryIds = Array.from(new Set(storyIds)).filter(
-          (id) => !this.loadedStoryIds.has(id),
-        );
         this.cacheStoryIds(feedType, storyIds);
       }
+
+      uniqueNewStoryIds = Array.from(new Set(storyIds)).filter((id) => {
+        !this.loadedStoryIds.has(id);
+      });
+
+      removeDuplicates;
 
       let stories: Story[] = [];
       let uniqueStoriesCount = 0;

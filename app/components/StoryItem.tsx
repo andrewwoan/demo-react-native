@@ -110,6 +110,7 @@ const AnimatedStoryItem: React.FC<AnimatedStoryItemProps> = ({
           <View style={styles.contentContainer}>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.author}>By: {item.by}</Text>
+            <Text>{item.id}</Text>
             <Text style={styles.stats}>
               See {item.descendants || 0} comments
             </Text>

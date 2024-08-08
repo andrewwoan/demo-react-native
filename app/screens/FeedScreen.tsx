@@ -54,6 +54,7 @@ const FeedScreen: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", async () => {
+      console.log("hey but I am loading you know what I mean");
       setRefreshing(true);
       setRetryCount(0);
       setPage(0);
